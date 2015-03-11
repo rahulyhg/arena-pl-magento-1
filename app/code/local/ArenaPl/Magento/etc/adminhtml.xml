@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+    <menu>
+        <arenapl_magento module="arenapl_magento">
+            <title>Arena.pl</title>
+            <sort_order>80</sort_order>
+            <children>
+                <orders>
+                    <title>Zamówienia</title>
+                    <sort_order>10</sort_order>
+                    <action>adminhtml/arenapl/orders</action>
+                </orders>
+                <config>
+                    <title>Konfiguracja</title>
+                    <sort_order>20</sort_order>
+                    <children>
+                        <account>
+                            <title>Konto Arena.pl</title>
+                            <action>adminhtml/arenapl/account</action>
+                        </account>
+                        <categories>
+                            <title>Kategorie</title>
+                            <action>adminhtml/arenapl/categories</action>
+                        </categories>
+                    </children>
+                </config>
+                <help>
+                    <title>Pomoc</title>
+                    <sort_order>30</sort_order>
+                    <action>adminhtml/arenapl/help</action>
+                </help>
+            </children>
+        </arenapl_magento>
+    </menu>
+</config>

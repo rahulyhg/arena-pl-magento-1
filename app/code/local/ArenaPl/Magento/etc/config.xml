@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <modules>
+        <ArenaPl_Magento>
+            <version>0.0.1</version>
+        </ArenaPl_Magento>
+    </modules>
+    <global>
+        <models>
+            <arenapl_magento>
+                <class>ArenaPl_Magento_Model</class>
+            </arenapl_magento>
+        </models>
+        <helpers>
+            <arenapl_magento>
+                <class>ArenaPl_Magento_Helper</class>
+            </arenapl_magento>
+        </helpers>
+        <blocks>
+            <arenapl_magento>
+                <class>ArenaPl_Magento_Block</class>
+            </arenapl_magento>
+        </blocks>
+        <events>
+            <controller_front_init_before>
+                <observers>
+                    <arenapl_magento_autoloadobserver>
+                        <type>singleton</type>
+                        <class>ArenaPl_Magento_AutoloadObserver</class>
+                        <method>injectComposerAutoloader</method>
+                    </arenapl_magento_autoloadobserver>
+                </observers>
+            </controller_front_init_before>
+        </events>
+    </global>
+    <admin>
+        <routers>
+            <adminhtml>
+                <args>
+                    <modules>
+                        <arenapl before="Mage_Adminhtml">ArenaPl_Magento_Adminhtml</arenapl>
+                    </modules>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
+</config>
