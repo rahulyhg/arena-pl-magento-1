@@ -3,7 +3,7 @@
     <modules>
         <ArenaPl_Magento>
             <active>true</active>
-            <codePool>local</codePool>
+            <codePool>community</codePool>
         </ArenaPl_Magento>
     </modules>
 </config>
