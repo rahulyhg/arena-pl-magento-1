@@ -1,0 +1,55 @@
+{
+  "name": "arena-pl/arena-pl-php-sdk",
+  "type": "library",
+  "description": "Arena.pl PHP SDK is a PHP client library for interacting with Arena.pl web services",
+  "keywords": [
+    "Arena.pl",
+    "http",
+    "client",
+    "rest",
+    "web service"
+  ],
+  "homepage": "https://arena.pl/",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Dawid Spiechowicz",
+      "email": "spiechu@gmail.com",
+      "homepage": "https://github.com/spiechu"
+    }
+  ],
+  "prefer-stable": true,
+  "require": {
+    "php": ">=5.4.0",
+    "guzzlehttp/guzzle": "~5.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "~4.0",
+    "codeclimate/php-test-reporter": "dev-master"
+  },
+  "suggest": {
+    "ext-curl": "SDK will work with full functionality if cURL is present"
+  },
+  "support": {
+    "issues": "https://github.com/arena-pl/arena-pl-php-sdk/issues",
+    "source": "https://github.com/arena-pl/arena-pl-php-sdk"
+  },
+  "autoload": {
+    "psr-4": {
+      "ArenaPl\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "ArenaPl\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "bin-dir": "bin"
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "1.0-dev"
+    }
+  }
+}

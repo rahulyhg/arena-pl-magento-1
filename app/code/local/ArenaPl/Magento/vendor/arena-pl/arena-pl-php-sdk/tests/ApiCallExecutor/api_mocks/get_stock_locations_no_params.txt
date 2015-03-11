@@ -1,0 +1,1 @@
+{"count":1,"current_page":1,"pages":1,"stock_locations":[{"id":218,"name":"test_location","address1":"ul. Widoczna 36","address2":null,"city":"Warszawa","state_id":null,"state_name":null,"country_id":null,"zipcode":"00-012","phone":null,"active":true,"":null}]}

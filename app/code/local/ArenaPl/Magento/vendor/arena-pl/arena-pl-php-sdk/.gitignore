@@ -1,0 +1,9 @@
+/bin/
+/build/
+
+/composer.phar
+/vendor/
+
+/.idea/
+/nbproject/
+/.DS_Store
