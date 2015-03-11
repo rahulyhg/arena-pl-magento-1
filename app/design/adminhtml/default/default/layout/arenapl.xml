@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<layout>
+    <adminhtml_arenapl_orders>
+        <reference name="menu">
+            <action method="setActive"><menupath>arenapl_magento</menupath></action>
+        </reference>
+        <reference name="content">
+            <block type="arenapl_magento/orders" template="arenapl/orders.phtml" />
+        </reference>
+    </adminhtml_arenapl_orders>
+</layout>

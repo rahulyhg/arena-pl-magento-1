@@ -44,4 +44,13 @@
             </adminhtml>
         </routers>
     </admin>
+    <adminhtml>
+        <layout>
+            <updates>
+                <arenapl_magento>
+                    <file>arenapl.xml</file>
+                </arenapl_magento>
+            </updates>
+        </layout>
+    </adminhtml>
 </config>
