@@ -1,9 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <layout>
+    <adminhtml_arenapl_account>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>arenapl_magento</menupath>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="arenapl_magento/account" template="arenapl/account.phtml" />
+        </reference>
+    </adminhtml_arenapl_account>
+    <adminhtml_arenapl_categories>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>arenapl_magento</menupath>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="arenapl_magento/categories" template="arenapl/categories.phtml" />
+        </reference>
+    </adminhtml_arenapl_categories>
+    <adminhtml_arenapl_help>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>arenapl_magento</menupath>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="arenapl_magento/help" template="arenapl/help.phtml" />
+        </reference>
+    </adminhtml_arenapl_help>
     <adminhtml_arenapl_orders>
         <reference name="menu">
-            <action method="setActive"><menupath>arenapl_magento</menupath></action>
+            <action method="setActive">
+                <menupath>arenapl_magento</menupath>
+            </action>
         </reference>
         <reference name="content">
             <block type="arenapl_magento/orders" template="arenapl/orders.phtml" />
