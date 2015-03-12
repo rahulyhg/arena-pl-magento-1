@@ -12,7 +12,7 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
     public function accountAction()
     {
         $this->loadLayout();
-
+        
         $this->renderLayout();
     }
 

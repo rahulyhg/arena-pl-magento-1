@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+    <sections>
+        <arenapl>
+            <label>Arena.pl</label>
+            <tab>sales</tab>
+            <frontend_type>text</frontend_type>
+            <sort_order>1000</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+            <groups>
+                <settings>
+                    <label>Ustawienia klienta API</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>1</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <subdomain>
+                            <label>Email Address of Your Moneybookers Account</label>
+                            <comment><![CDATA[To have access to the international payment network of Moneybookers please register <a href="http://www.moneybookers.com/partners/magento/" target="_blank">here</a> for a free account if you don’t have one yet.]]></comment>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </subdomain>
+                        <token>
+                            <label>Email Address of Your Moneybookers Account</label>
+                            <comment><![CDATA[To have access to the international payment network of Moneybookers please register <a href="http://www.moneybookers.com/partners/magento/" target="_blank">here</a> for a free account if you don’t have one yet.]]></comment>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </token>
+                    </fields>
+                </settings>
+            </groups>
+        </arenapl>
+    </sections>
+</config>
