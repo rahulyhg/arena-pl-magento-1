@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<layout>
+<layout>    
     <adminhtml_arenapl_account>
         <reference name="menu">
             <action method="setActive">
@@ -8,7 +8,10 @@
             </action>
         </reference>
         <reference name="content">
-            <block type="arenapl_magento/account" template="arenapl/account.phtml" />
+            <block type="arenapl_magento/account" name="arena_account" as="arena_account" template="arenapl/account.phtml"/>
+        </reference>
+        <reference name="arena_account">
+            <block type="arenapl_magento/configchecker" name="configchecker" template="arenapl/configchecker.phtml" />
         </reference>
     </adminhtml_arenapl_account>
     <adminhtml_arenapl_categories>
@@ -18,7 +21,10 @@
             </action>
         </reference>
         <reference name="content">
-            <block type="arenapl_magento/categories" template="arenapl/categories.phtml" />
+            <block type="arenapl_magento/categories" name="arena_categories" template="arenapl/categories.phtml" />
+        </reference>
+        <reference name="arena_categories">
+            <block type="arenapl_magento/configchecker" name="configchecker" template="arenapl/configchecker.phtml" />
         </reference>
     </adminhtml_arenapl_categories>
     <adminhtml_arenapl_help>
@@ -38,7 +44,10 @@
             </action>
         </reference>
         <reference name="content">
-            <block type="arenapl_magento/orders" template="arenapl/orders.phtml" />
+            <block type="arenapl_magento/orders" name="arena_orders" template="arenapl/orders.phtml" />
+        </reference>
+        <reference name="arena_orders">
+            <block type="arenapl_magento/configchecker" name="configchecker" template="arenapl/configchecker.phtml" />
         </reference>
     </adminhtml_arenapl_orders>
 </layout>
