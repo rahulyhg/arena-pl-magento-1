@@ -9,3 +9,20 @@
 </div>
 
 <?php echo $this->getChildHtml('configchecker'); ?>
+
+<table width="100%">
+    <thead>
+        <tr>
+            <th>Kategoria sklepu</th>
+            <th>Kategoria Arena.pl</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($this->getAllCategories() as $category): ?>
+            <tr>
+                <td><?php echo $this->displayCategoryString($category); ?></td>
+                <td>---</td>
+            </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
