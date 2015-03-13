@@ -3,7 +3,7 @@
 class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Controller_Action
 {
     public function ordersAction()
-    {        
+    {
         $this->loadLayout();
 
         $this->renderLayout();
@@ -12,7 +12,7 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
     public function accountAction()
     {
         $this->loadLayout();
-        
+
         $this->renderLayout();
     }
 

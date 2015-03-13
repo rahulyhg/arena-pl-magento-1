@@ -9,3 +9,14 @@
 </div>
 
 <?php echo $this->getChildHtml('configchecker'); ?>
+
+<table>
+    <tr>
+        <td>Subdomena</td>
+        <td><?php echo $this->escapeHtml($this->getSubdomain()); ?></td>
+    </tr>
+    <tr>
+        <td>Token</td>
+        <td><?php echo $this->escapeHtml($this->getToken()); ?></td>
+    </tr>
+</table>
