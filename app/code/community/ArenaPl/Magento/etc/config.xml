@@ -20,6 +20,14 @@
                 <class>ArenaPl_Magento_Helper</class>
             </arenapl_magento>
         </helpers>
+        <resources>
+            <arenapl_magento_setup>
+                <setup>
+                    <module>ArenaPl_Magento</module>
+                    <class>ArenaPl_Magento_Model_Resource_Setup</class>
+                </setup>
+            </arenapl_magento_setup>
+        </resources>
         <blocks>
             <arenapl_magento>
                 <class>ArenaPl_Magento_Block</class>
