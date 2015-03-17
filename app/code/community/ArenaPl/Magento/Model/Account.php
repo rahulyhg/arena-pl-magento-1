@@ -2,6 +2,9 @@
 
 class ArenaPl_Magento_Model_Account extends Mage_Core_Model_Abstract
 {
+    /**
+     * Configuration path to settings.
+     */
     const XML_PATH_SETTINGS = 'arenapl/settings';
 
     /**
