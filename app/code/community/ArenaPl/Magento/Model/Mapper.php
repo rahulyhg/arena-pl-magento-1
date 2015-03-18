@@ -143,7 +143,7 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
             --$depth;
         }
 
-        if (!$depth) {
+        if ($depth <= 0) {
             return;
         }
 
