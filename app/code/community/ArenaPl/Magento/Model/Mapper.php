@@ -47,10 +47,21 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
      */
     public function getMappedArenaTaxon(Mage_Catalog_Model_Category $category)
     {
-        $data = $this->makeApiTaxonCall(
+        return $this->getTaxonData(
             $category->getArenaTaxonomyId(),
             $category->getArenaTaxonId()
         );
+    }
+
+    /**
+     * @param int $taxonomyId
+     * @param int $taxonId
+     *
+     * @return array|null
+     */
+    public function getTaxonData($taxonomyId, $taxonId)
+    {
+        $data = $this->makeApiTaxonCall($taxonomyId, $taxonId);
 
         if (is_array($data)) {
             return $this->processRawTaxonData($data);
@@ -211,5 +222,40 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
             ['arenapl_api_call'],
             3600
         );
+    }
+
+    /**
+     * @param array $taxonsData
+     *
+     * @return bool
+     */
+    public function saveCategoryMappings(array $taxonsData)
+    {
+        /* @var $category Mage_Catalog_Model_Category */
+        $category = Mage::getModel('catalog/category');
+
+        /* @var $collection Mage_Catalog_Model_Resource_Category_Collection */
+        $collection = $category->getCollection();
+        $collection->addAttributeToFilter('entity_id', [
+            'in' => array_keys($taxonsData),
+        ]);
+
+        /* @var $category Mage_Catalog_Model_Category */
+        foreach ($collection as $category) {
+            $entityId = $category->getEntityId();
+
+            $category->setData(
+                self::ATTRIBUTE_CATALOG_ARENA_TAXONOMY_ID,
+                (int) $taxonsData[$entityId]['taxonomy_id']
+            );
+            $category->setData(
+                self::ATTRIBUTE_CATALOG_ARENA_TAXON_ID,
+                (int) $taxonsData[$entityId]['taxon_id']
+            );
+
+            $category->save();
+        }
+
+        return true;
     }
 }
