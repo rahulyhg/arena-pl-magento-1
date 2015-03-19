@@ -1,0 +1,21 @@
+<?php if ($this->shouldDisplaySettingsNotSetWarning()): ?>
+    <div>
+        <ul class="messages">
+            <li class="notice-msg">
+                <ul>
+                    <li>Nie ustawiono konta użytkownika Arena.pl, <a href="<?php echo Mage::helper('adminhtml')->getUrl('/system_config/edit/section/arenapl'); ?>">proszę ustawić</a></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+<?php elseif ($this->shouldDisplayWrongSettings()): ?>
+    <div>
+        <ul class="messages">
+            <li class="notice-msg">
+                <ul>
+                    <li>Dane konta użytkownika Arena.pl są nieprawidłowe, <a href="<?php echo Mage::helper('adminhtml')->getUrl('/system_config/edit/section/arenapl'); ?>">proszę ustawić poprawne</a></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+<?php endif; ?>

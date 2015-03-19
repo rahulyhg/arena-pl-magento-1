@@ -1,0 +1,5 @@
+{
+    "require": {
+        "arena-pl/arena-pl-php-sdk": "~1.0@stable"
+    }
+}

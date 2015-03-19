@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<layout>
+    <adminhtml_arenapl_account>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>arenapl_magento</menupath>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="arenapl_magento/account" name="arena_account" as="arena_account" template="arenapl/account.phtml"/>
+        </reference>
+        <reference name="arena_account">
+            <block type="arenapl_magento/configchecker" name="configchecker" template="arenapl/configchecker.phtml" />
+        </reference>
+    </adminhtml_arenapl_account>
+    <adminhtml_arenapl_categories>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>arenapl_magento</menupath>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="arenapl_magento/categories" name="arena_categories" template="arenapl/categories.phtml" />
+        </reference>
+        <reference name="arena_categories">
+            <block type="arenapl_magento/configchecker" name="configchecker" template="arenapl/configchecker.phtml" />
+        </reference>
+    </adminhtml_arenapl_categories>
+    <adminhtml_arenapl_help>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>arenapl_magento</menupath>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="arenapl_magento/help" template="arenapl/help.phtml" />
+        </reference>
+    </adminhtml_arenapl_help>
+    <adminhtml_arenapl_orders>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>arenapl_magento</menupath>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="arenapl_magento/orders" name="arena_orders" template="arenapl/orders.phtml" />
+        </reference>
+        <reference name="arena_orders">
+            <block type="arenapl_magento/configchecker" name="configchecker" template="arenapl/configchecker.phtml" />
+        </reference>
+    </adminhtml_arenapl_orders>
+</layout>

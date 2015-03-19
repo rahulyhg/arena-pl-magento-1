@@ -1,0 +1,20 @@
+<select name="arenapl_taxons[]">
+    <?php
+    
+    /* @var $this ArenaPl_Magento_Block_Categories */
+    
+    $taxonomyId = $this->getData('taxonomy_id');
+    $taxonId = $this->getData('taxon_id');
+    $categoryEntityId = $this->getData('category_entity_id');
+    
+    $taxonData = $this->getTaxonData($taxonomyId, $taxonId);
+
+    foreach ($this->getTaxonomiesSelect($taxonData) as $taxon):
+        ?>
+        <option value="<?php echo "$categoryEntityId-{$taxon['taxonomy_id']}-{$taxon['taxon_id']}"; ?>">
+            <?php echo $taxon['name']; ?>
+        </option>
+        <?php
+    endforeach;
+    ?>
+</select>
