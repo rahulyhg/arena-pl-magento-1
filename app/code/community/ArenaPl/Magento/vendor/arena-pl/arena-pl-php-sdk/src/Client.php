@@ -23,6 +23,7 @@ use ArenaPl\ApiCall\GetStockLocation;
 use ArenaPl\ApiCall\GetStockLocations;
 use ArenaPl\ApiCall\GetTaxon;
 use ArenaPl\ApiCall\GetTaxonomies;
+use ArenaPl\ApiCall\GetTaxonTree;
 use ArenaPl\ApiCall\RestoreArchivedProduct;
 use ArenaPl\ApiCall\SetProductProperty;
 use ArenaPl\ApiCall\SetProductRelatedProducts;
@@ -101,6 +102,16 @@ class Client
     public function getTaxon()
     {
         return $this->apiCallFactory->getApiCall('GetTaxon');
+    }
+
+    /**
+     * @api
+     *
+     * @return GetTaxonTree
+     */
+    public function getTaxonTree()
+    {
+        return $this->apiCallFactory->getApiCall('GetTaxonTree');
     }
 
     /**

@@ -22,7 +22,7 @@ trait ProductNormalizersTrait
     protected function isPHPOld()
     {
         if ($this->isPHPOld === null) {
-            $this->isPHPOld = PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION == 4;
+            $this->isPHPOld = version_compare(PHP_VERSION, '5.5.0', '<');
         }
 
         return $this->isPHPOld;
