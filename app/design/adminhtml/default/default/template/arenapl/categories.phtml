@@ -99,6 +99,13 @@
     (function ($) {
         var EVENT_SELECT_CHANGED = 'arenapl_select_changed';
 
+        window.Element = window.Element || {
+            show: function () {
+            },
+            hide: function () {
+            }
+        };
+
         var loadTaxons = function () {
             $this = $(this);
             var selectedOption = $this.val();
@@ -132,7 +139,7 @@
                 var dataToSave = $('#arenapl-category-mapper select[name="arenapl_taxons[]"]').serialize();
                 dataToSave += '&form_key=<?php echo Mage::getSingleton('core/session')->getFormKey(); ?>';
 
-                Element.show('loading-mask');
+                window.Element.show('loading-mask');
 
                 $.post('<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/savecategorymapping'); ?>?isAjax=true', dataToSave)
                         .done(function (result) {
@@ -145,7 +152,7 @@
                             throw new Error('Failed saving data');
                         })
                         .always(function () {
-                            Element.hide('loading-mask');
+                            window.Element.hide('loading-mask');
                         });
             };
         });
