@@ -25,7 +25,7 @@
             $currentCategoryEntityId = $category->getEntityId();
             $this->setCategory($category);
             ?>
-            <tr data-category-entity-id="<?php echo $currentCategoryEntityId; ?>">
+            <tr id="category-<?php echo $currentCategoryEntityId; ?>">
                 <td><?php echo $this->displayMagentoCategoryString(); ?></td>
                 <td>
                     <?php
