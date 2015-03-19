@@ -95,7 +95,7 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0-rc.2/js/select2.min.js"></script>
 <script type="text/javascript">
     jQuery.noConflict();
-    
+
     (function ($) {
         var EVENT_SELECT_CHANGED = 'arenapl_select_changed';
 
@@ -132,17 +132,20 @@
                 var dataToSave = $('#arenapl-category-mapper select[name="arenapl_taxons[]"]').serialize();
                 dataToSave += '&form_key=<?php echo Mage::getSingleton('core/session')->getFormKey(); ?>';
 
+                Element.show('loading-mask');
+
                 $.post('<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/savecategorymapping'); ?>?isAjax=true', dataToSave)
                         .done(function (result) {
                             var jsonResult = jQuery.parseJSON(result);
                             if (jsonResult.status === 'error') {
                                 throw new Error(jsonResult.message);
                             }
-
-                            window.location.reload();
                         })
                         .fail(function (result) {
                             throw new Error('Failed saving data');
+                        })
+                        .always(function () {
+                            Element.hide('loading-mask');
                         });
             };
         });
