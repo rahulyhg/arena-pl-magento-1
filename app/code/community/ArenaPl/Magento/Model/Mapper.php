@@ -2,8 +2,9 @@
 
 class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
 {
-    const ATTRIBUTE_CATALOG_ARENA_TAXONOMY_ID = 'arena_taxonomy_id';
-    const ATTRIBUTE_CATALOG_ARENA_TAXON_ID = 'arena_taxon_id';
+    const ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID = 'arena_taxonomy_id';
+    const ATTRIBUTE_CATEGORY_ARENA_TAXON_ID = 'arena_taxon_id';
+    const ATTRIBUTE_PRODUCT_ARENA_ID = 'arena_product_id';
 
     /**
      * @var \ArenaPl\Client
@@ -130,34 +131,61 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
 
     /**
      * @param array $baseTaxon
-     * @param int   $depth
-     * @param array $returnData
      *
      * @return array
      */
-    public function getTaxonTree(array $baseTaxon, $depth, array &$returnData = [])
+    public function getTaxonTree(array $baseTaxon)
     {
-        if (empty($returnData)) {
-            $returnData[] = $baseTaxon;
-        } else {
-            --$depth;
+        $taxonomyId = (int) $baseTaxon['taxonomy_id'];
+
+        $rawApiCall = $this->makeApiTaxonTreeCall(
+            $taxonomyId,
+            $baseTaxon['taxon_id']
+        );
+
+        if (is_array($rawApiCall)) {
+            return $this->parseTaxonTree($taxonomyId, $rawApiCall);
         }
 
-        if ($depth <= 0) {
-            return;
-        }
+        return [];
+    }
 
-        foreach ($baseTaxon['children'] as $child) {
-            $rawChildTaxonData = $this->makeApiTaxonCall($baseTaxon['taxonomy_id'], $child['id']);
-            if (is_array($rawChildTaxonData)) {
-                $childTaxon = $this->processRawTaxonData($rawChildTaxonData);
-                $returnData[] = $childTaxon;
+    /**
+     * @param int   $taxonomyId
+     * @param array $rawApiCall
+     *
+     * @return array
+     */
+    protected function parseTaxonTree($taxonomyId, array $rawApiCall)
+    {
+        static $sequence = ['taxon_id', 'name', 'pretty_name'];
 
-                $this->getTaxonTree($childTaxon, $depth, $returnData);
+        $returnArray = [];
+
+        $currentStep = -1;
+        $constructedTaxon = [
+            'taxonomy_id' => $taxonomyId,
+        ];
+
+        array_walk_recursive($rawApiCall, function ($value) use (
+            &$currentStep,
+            &$constructedTaxon,
+            &$returnArray,
+            $taxonomyId,
+            $sequence
+        ) {
+            if (++$currentStep > 2) {
+                $currentStep = 0;
+                $returnArray[] = $constructedTaxon;
+                $constructedTaxon = [
+                    'taxonomy_id' => $taxonomyId,
+                ];
             }
-        }
 
-        return $returnData;
+            $constructedTaxon[$sequence[$currentStep]] = $value;
+        });
+
+        return $returnArray;
     }
 
     /**
@@ -178,7 +206,7 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
                     foreach ($result as $row) {
                         $returnData[] = $this->processRawTaxonData($row['root']);
                     }
-                } catch (\Exception $ex) {
+                } catch (\Exception $e) {
                 }
 
                 return $returnData;
@@ -216,12 +244,31 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
                         ->getResult();
 
                     return $result;
-                } catch (\Exception $ex) {
+                } catch (\Exception $e) {
                 }
             },
             ['arenapl_api_call'],
             3600
         );
+    }
+
+    /**
+     * @param int $taxonomyId
+     * @param int $taxonId
+     *
+     * @return array|null
+     */
+    protected function makeApiTaxonTreeCall($taxonomyId, $taxonId)
+    {
+        try {
+            $result = $this->client->getTaxonTree()
+                ->setTaxonId((int) $taxonomyId)
+                ->setTaxonChildId((int) $taxonId)
+                ->getResult();
+
+            return $result;
+        } catch (\Exception $e) {
+        }
     }
 
     /**
@@ -245,11 +292,11 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
             $entityId = $category->getEntityId();
 
             $category->setData(
-                self::ATTRIBUTE_CATALOG_ARENA_TAXONOMY_ID,
+                self::ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID,
                 (int) $taxonsData[$entityId]['taxonomy_id']
             );
             $category->setData(
-                self::ATTRIBUTE_CATALOG_ARENA_TAXON_ID,
+                self::ATTRIBUTE_CATEGORY_ARENA_TAXON_ID,
                 (int) $taxonsData[$entityId]['taxon_id']
             );
 

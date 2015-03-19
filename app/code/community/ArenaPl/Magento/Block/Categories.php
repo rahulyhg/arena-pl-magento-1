@@ -122,16 +122,10 @@ class ArenaPl_Magento_Block_Categories extends Mage_Core_Block_Template
 
         return $this->helper->cacheExpensiveCall($cacheKey, function () use ($taxonData) {
             $baseTaxon = $this->mapper->getBaseTaxon($taxonData);
-            $taxonomyTree = $this->mapper->getTaxonTree(
-                $baseTaxon,
-                Mage::getIsDeveloperMode() ? 3 : 999
-            );
+            $taxonomyTree = $this->mapper->getTaxonTree($baseTaxon);
 
             foreach ($taxonomyTree as &$taxon) {
-                $taxon['name'] = implode(
-                    self::CATEGORY_SEPARATOR,
-                    $this->mapper->getTaxonNameChain($taxon)
-                );
+                $taxon['name'] = $taxon['pretty_name'];
             }
 
             return $taxonomyTree;
