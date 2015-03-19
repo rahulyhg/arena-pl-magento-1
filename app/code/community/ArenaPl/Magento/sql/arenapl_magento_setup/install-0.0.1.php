@@ -7,7 +7,7 @@ $installer->startSetup();
 
 $installer->addAttribute(
     Mage_Catalog_Model_Category::ENTITY,
-    ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATALOG_ARENA_TAXONOMY_ID,
+    ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID,
     [
         'type' => 'int',
         'label' => 'Mapped taxonomy id',
@@ -25,7 +25,7 @@ $installer->addAttribute(
 
 $installer->addAttribute(
     Mage_Catalog_Model_Category::ENTITY,
-    ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATALOG_ARENA_TAXON_ID,
+    ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATEGORY_ARENA_TAXON_ID,
     [
         'type' => 'int',
         'label' => 'Mapped taxon id',
@@ -38,6 +38,24 @@ $installer->addAttribute(
         'unique' => false,
         'group' => 'Arena.pl Settings',
         'note' => 'Podaj wyłącznie wartość liczbową id taksonu',
+        'frontend_class' => 'validate-digits',
+]);
+
+$installer->addAttribute(
+    Mage_Catalog_Model_Product::ENTITY,
+    ArenaPl_Magento_Model_Mapper::ATTRIBUTE_PRODUCT_ARENA_ID,
+    [
+        'type' => 'int',
+        'label' => 'Arena.pl product id',
+        'input' => 'text',
+        'visible' => true,
+        'global' => Mage_Catalog_Model_Resource_Eav_Attribute::SCOPE_STORE,
+        'required' => false,
+        'user_defined' => true,
+        'default' => null,
+        'unique' => false,
+        'group' => 'Arena.pl Settings',
+        'note' => 'Podaj wyłącznie wartość liczbową id produktu',
         'frontend_class' => 'validate-digits',
 ]);
 
