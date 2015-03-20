@@ -111,6 +111,11 @@
             var selectedOption = $this.val();
             var $taxonsDiv = $this.closest('td').find('div.arenapl_taxons');
 
+            if (selectedOption === '0') {
+                $taxonsDiv.empty();
+                return;
+            }
+
             $.getJSON('<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/ajax'); ?>?task=load_taxon_tree&selected_taxonomy=' + selectedOption)
                     .done(function (result) {
                         if (result.status === 'error') {
@@ -159,7 +164,18 @@
     }(jQuery));
 </script>
 <style>
+    #arenapl-category-mapper thead th {
+        font-size: 15pt;
+        padding-bottom: 5px;
+    }
     #arenapl-category-mapper tbody td {
         border-bottom: 1px solid black;
+        padding: 5px 0px;
+    }
+    #arenapl-category-mapper .select2-container {
+        padding-bottom: 10px;
+    }
+    .pull-right {
+        float: right;
     }
 </style>
