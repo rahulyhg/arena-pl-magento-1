@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "arena-pl/arena-pl-php-sdk",
-            "version": "1.0.1",
+            "version": "1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/arena-pl/arena-pl-php-sdk.git",
-                "reference": "5b900e2ac6e800435a9d1231b2f05d3ba28d8f40"
+                "reference": "cb953134ee009e0cdd379f5256944f9eac011054"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/arena-pl/arena-pl-php-sdk/zipball/5b900e2ac6e800435a9d1231b2f05d3ba28d8f40",
-                "reference": "5b900e2ac6e800435a9d1231b2f05d3ba28d8f40",
+                "url": "https://api.github.com/repos/arena-pl/arena-pl-php-sdk/zipball/cb953134ee009e0cdd379f5256944f9eac011054",
+                "reference": "cb953134ee009e0cdd379f5256944f9eac011054",
                 "shasum": ""
             },
             "require": {
@@ -62,7 +62,7 @@
                 "rest",
                 "web service"
             ],
-            "time": "2015-03-09 10:15:10"
+            "time": "2015-03-18 15:13:16"
         },
         {
             "name": "guzzlehttp/guzzle",

@@ -4,7 +4,7 @@ namespace ArenaPl\ApiCall;
 
 use ArenaPl\ApiCall\Traits\TaxonTrait;
 
-class GetTaxon extends AbstractApiCall implements ApiCallInterface
+class GetTaxonTree extends AbstractApiCall implements ApiCallInterface
 {
     use TaxonTrait;
 
@@ -19,7 +19,7 @@ class GetTaxon extends AbstractApiCall implements ApiCallInterface
     /**
      * {@inheritDoc}
      *
-     * @throws \RuntimeException when taxon ID is not set
+     * @throws \RuntimeException when taxon ID or taxon child ID is not set
      */
     public function getPath()
     {
@@ -28,14 +28,18 @@ class GetTaxon extends AbstractApiCall implements ApiCallInterface
         }
 
         if (!$this->taxonChildId) {
-            return sprintf('/api/taxonomies/%d', $this->taxonId);
-        } else {
-            return sprintf('/api/taxonomies/%d/taxons/%d', $this->taxonId, $this->taxonChildId);
+            throw new \RuntimeException('Taxon child ID not set');
         }
+
+        return sprintf(
+            '/api/taxonomies/%d/taxons/%d/tree',
+            $this->taxonId,
+            $this->taxonChildId
+        );
     }
 
     /**
-     * Returns taxon data.
+     * Returns taxon tree data.
      *
      * @return array
      *

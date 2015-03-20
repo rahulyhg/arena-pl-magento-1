@@ -1,13 +1,14 @@
 <?php
 
+use ArenaPl\Client;
+
 class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
 {
     const ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID = 'arena_taxonomy_id';
     const ATTRIBUTE_CATEGORY_ARENA_TAXON_ID = 'arena_taxon_id';
-    const ATTRIBUTE_PRODUCT_ARENA_ID = 'arena_product_id';
 
     /**
-     * @var \ArenaPl\Client
+     * @var Client
      */
     protected $client;
 
@@ -278,6 +279,13 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
      */
     public function saveCategoryMappings(array $taxonsData)
     {
+        Mage::dispatchEvent(
+            ArenaPl_Magento_EventInterface::EVENT_PRE_SAVE_MAPPED_CATEGORIES,
+            [
+                'taxons_data' => $taxonsData,
+            ]
+        );
+
         /* @var $category Mage_Catalog_Model_Category */
         $category = Mage::getModel('catalog/category');
 
@@ -302,6 +310,13 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
 
             $category->save();
         }
+
+        Mage::dispatchEvent(
+            ArenaPl_Magento_EventInterface::EVENT_POST_SAVE_MAPPED_CATEGORIES,
+            [
+                'saved_categories' => $collection,
+            ]
+        );
 
         return true;
     }

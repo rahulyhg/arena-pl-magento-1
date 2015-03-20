@@ -167,7 +167,7 @@ class ArenaPl_Magento_Block_Categories extends Mage_Core_Block_Template
                 ->setData([
                     'label'     => 'Zapisz',
                     'onclick'   => 'arenaplSaveCategories();',
-                    'class'     => 'save',
+                    'class'     => 'save pull-right',
                 ])
             );
 

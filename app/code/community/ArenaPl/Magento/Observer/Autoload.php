@@ -1,6 +1,6 @@
 <?php
 
-class ArenaPl_Magento_AutoloadObserver
+class ArenaPl_Magento_Observer_Autoload
 {
     /**
      * @var bool

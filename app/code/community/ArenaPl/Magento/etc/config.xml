@@ -36,13 +36,31 @@
         <events>
             <controller_front_init_before>
                 <observers>
-                    <arenapl_magento_autoloadobserver>
+                    <arenapl_magento_observer_autoload>
                         <type>singleton</type>
-                        <class>ArenaPl_Magento_AutoloadObserver</class>
+                        <class>ArenaPl_Magento_Observer_Autoload</class>
                         <method>injectComposerAutoloader</method>
-                    </arenapl_magento_autoloadobserver>
+                    </arenapl_magento_observer_autoload>
                 </observers>
             </controller_front_init_before>
+            <catalog_category_save_commit_after>
+                <observers>
+                    <arenapl_magento_observer_category>
+                        <type>singleton</type>
+                        <class>ArenaPl_Magento_Observer_Category</class>
+                        <method>afterCategorySave</method>
+                    </arenapl_magento_observer_category>
+                </observers>
+            </catalog_category_save_commit_after>
+            <catalog_product_save_commit_after>
+                <observers>
+                    <arenapl_magento_observer_category>
+                        <type>singleton</type>
+                        <class>ArenaPl_Magento_Observer_Product</class>
+                        <method>afterProductSave</method>
+                    </arenapl_magento_observer_category>
+                </observers>
+            </catalog_product_save_commit_after>
         </events>
     </global>
     <admin>
@@ -87,4 +105,11 @@
             </updates>
         </layout>
     </adminhtml>
+    <default>
+        <arenapl>
+            <notifications>
+                <notify_unmapped_category>1</notify_unmapped_category>
+            </notifications>
+        </arenapl>
+    </default>
 </config>

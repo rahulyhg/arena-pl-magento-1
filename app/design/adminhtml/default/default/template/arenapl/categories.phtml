@@ -25,7 +25,7 @@
             $currentCategoryEntityId = $category->getEntityId();
             $this->setCategory($category);
             ?>
-            <tr data-category-entity-id="<?php echo $currentCategoryEntityId; ?>">
+            <tr id="category-<?php echo $currentCategoryEntityId; ?>">
                 <td><?php echo $this->displayMagentoCategoryString(); ?></td>
                 <td>
                     <?php
@@ -95,14 +95,26 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0-rc.2/js/select2.min.js"></script>
 <script type="text/javascript">
     jQuery.noConflict();
-    
+
     (function ($) {
         var EVENT_SELECT_CHANGED = 'arenapl_select_changed';
+
+        window.Element = window.Element || {
+            show: function () {
+            },
+            hide: function () {
+            }
+        };
 
         var loadTaxons = function () {
             $this = $(this);
             var selectedOption = $this.val();
             var $taxonsDiv = $this.closest('td').find('div.arenapl_taxons');
+
+            if (selectedOption === '0') {
+                $taxonsDiv.empty();
+                return;
+            }
 
             $.getJSON('<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/ajax'); ?>?task=load_taxon_tree&selected_taxonomy=' + selectedOption)
                     .done(function (result) {
@@ -132,24 +144,38 @@
                 var dataToSave = $('#arenapl-category-mapper select[name="arenapl_taxons[]"]').serialize();
                 dataToSave += '&form_key=<?php echo Mage::getSingleton('core/session')->getFormKey(); ?>';
 
+                window.Element.show('loading-mask');
+
                 $.post('<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/savecategorymapping'); ?>?isAjax=true', dataToSave)
                         .done(function (result) {
                             var jsonResult = jQuery.parseJSON(result);
                             if (jsonResult.status === 'error') {
                                 throw new Error(jsonResult.message);
                             }
-
-                            window.location.reload();
                         })
                         .fail(function (result) {
                             throw new Error('Failed saving data');
+                        })
+                        .always(function () {
+                            window.Element.hide('loading-mask');
                         });
             };
         });
     }(jQuery));
 </script>
 <style>
+    #arenapl-category-mapper thead th {
+        font-size: 15pt;
+        padding-bottom: 5px;
+    }
     #arenapl-category-mapper tbody td {
         border-bottom: 1px solid black;
+        padding: 5px 0px;
+    }
+    #arenapl-category-mapper .select2-container {
+        padding-bottom: 10px;
+    }
+    .pull-right {
+        float: right;
     }
 </style>

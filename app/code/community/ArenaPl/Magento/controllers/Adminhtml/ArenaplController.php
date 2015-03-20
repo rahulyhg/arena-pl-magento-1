@@ -46,9 +46,6 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
         /* @var $mapper ArenaPl_Magento_Model_Mapper */
         $mapper = Mage::getSingleton('arenapl_magento/mapper');
         if ($mapper->saveCategoryMappings($taxonsData)) {
-            Mage::getSingleton('adminhtml/session')
-                ->addSuccess('Poprawnie zapisano kategorie');
-
             echo $this->returnOkAjax();
         } else {
             echo $this->returnErroredAjax('Błąd zapisu kategorii');
