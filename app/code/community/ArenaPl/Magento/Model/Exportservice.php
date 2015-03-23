@@ -1,43 +1,56 @@
 <?php
 
-use ArenaPl\Client;
-
 class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
 {
+    /**
+     * EAV product attribute.
+     */
     const ATTRIBUTE_PRODUCT_ARENA_ID = 'arena_product_id';
-
-    /**
-     * @var Client
-     */
-    protected $client;
-
-    /**
-     * @var ArenaPl_Magento_Helper_Data
-     */
-    protected $helper;
 
     /**
      * @var ArenaPl_Magento_Model_Mapper
      */
     protected $mapper;
 
+    /**
+     * @var ArenaPl_Magento_Model_Resource_Exportservice
+     */
+    protected $resource;
+
     protected function _construct()
     {
-        $this->helper = Mage::helper('arenapl_magento');
+        $this->resource = Mage::getResourceSingleton('arenapl_magento/exportservice');
         $this->mapper = Mage::getSingleton('arenapl_magento/mapper');
-        $this->client = $this->helper->getClient();
     }
 
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     */
     public function exportProduct(Mage_Catalog_Model_Product $product)
     {
         if (!$this->isAnyProductCategoryMapped($product)) {
             return;
         }
 
-        if ($this->isProductExported($product)) {
-            $arenaProductId = $this->exportExistingProduct($product);
+        if ($this->isProductOnStock($product)) {
+            $this->exportProductOnStock($product);
         } else {
-            $arenaProductId = $this->exportNewProduct($product);
+            $this->exportProductEmptyStock($product);
+        }
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     */
+    protected function exportProductOnStock(Mage_Catalog_Model_Product $product)
+    {
+        if ($this->isProductExported($product)) {
+            $arenaProductId = $this->getArenaProductId($product);
+
+            $this->resource->ensureArenaProductVisible($arenaProductId);
+            $this->resource->exportExistingProduct($product, $arenaProductId);
+        } else {
+            $arenaProductId = $this->resource->exportNewProduct($product);
             if ($arenaProductId) {
                 $this->saveArenaProductId($product, $arenaProductId);
             }
@@ -45,6 +58,16 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
 
         if ($arenaProductId) {
             $this->exportImages($product, $arenaProductId);
+        }
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     */
+    protected function exportProductEmptyStock(Mage_Catalog_Model_Product $product)
+    {
+        if ($this->isProductExported($product)) {
+            $this->resource->archiveProduct($this->getArenaProductId($product));
         }
     }
 
@@ -86,32 +109,11 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      *
      * @return bool
      */
-    protected function isProductExported(Mage_Catalog_Model_Product $product)
+    protected function isProductOnStock(Mage_Catalog_Model_Product $product)
     {
-        $arenaProductId = (int) $product->getArenaProductId();
+        $stockQuantity = (int) $product->getStockItem()->getQty();
 
-        return $arenaProductId != 0;
-    }
-
-    /**
-     * @param Mage_Catalog_Model_Product $product
-     *
-     * @return int|null
-     */
-    protected function exportNewProduct(Mage_Catalog_Model_Product $product)
-    {
-        $productData = $this->prepareArenaCompatibleData($product);
-
-        try {
-            $apiCall = $this->client->createProduct();
-            $apiCall->setProductData($productData);
-
-            $result = $apiCall->getResult();
-
-            return empty($result['id']) ? null : (int) $result['id'];
-        } catch (\Exception $e) {
-            return;
-        }
+        return $stockQuantity > 0;
     }
 
     /**
@@ -119,80 +121,29 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      *
      * @return bool
      */
-    protected function exportExistingProduct(Mage_Catalog_Model_Product $product)
+    protected function isProductExported(Mage_Catalog_Model_Product $product)
     {
-        $productData = $this->prepareArenaCompatibleData($product);
-        $arenaProductId = (int) $product->getArenaProductId();
-
-        try {
-            $apiCall = $this->client->updateProduct();
-            $apiCall->setProductId($arenaProductId);
-            $apiCall->setProductData($productData);
-
-            $apiCall->getResult();
-
-            return $arenaProductId;
-        } catch (\Exception $e) {
-            return;
-        }
+        return $this->getArenaProductId($product) != 0;
     }
 
     /**
      * @param Mage_Catalog_Model_Product $product
      *
-     * @return array
+     * @return int
      */
-    protected function prepareArenaCompatibleData(Mage_Catalog_Model_Product $product)
+    protected function getArenaProductId(Mage_Catalog_Model_Product $product)
     {
-        $data = [
-            'name' => (string) $product->getName(),
-        ];
-
-        $arenaCompatiblePrice = preg_replace(
-            '/\./', ',',
-            $product->getPrice(),
-            1
-        );
-        $data['price'] = (string) $arenaCompatiblePrice;
-
-        $taxonIds = [];
-        $collection = $this->getProductCategoryCollection($product);
-
-        /* @var $category Mage_Catalog_Model_Category */
-        foreach ($collection as $category) {
-            if ($this->mapper->hasMappedTaxon($category)) {
-                $taxonData = $this->mapper->getMappedArenaTaxon($category);
-                if (!empty($taxonData['taxon_id'])) {
-                    $taxonIds[] = (int) $taxonData['taxon_id'];
-                }
-            }
-        }
-        $data['taxon_ids'] = $taxonIds;
-
-        $description = $product->getDescription();
-        if (!empty($description)) {
-            $data['description'] = (string) $description;
-        }
-
-        $sku = $product->getSku();
-        if (!empty($sku)) {
-            $data['sku'] = (string) $sku;
-        }
-
-        $weight = $product->getWeight();
-        if (!empty($weight)) {
-            $data['weight'] = (float) $weight;
-        }
-
-        return $data;
+        return (int) $product->getArenaProductId();
     }
 
     /**
      * @param Mage_Catalog_Model_Product $product
      * @param int                        $arenaProductId
      */
-    protected function saveArenaProductId(Mage_Catalog_Model_Product $product, $arenaProductId)
-    {
+    protected function saveArenaProductId(
+        Mage_Catalog_Model_Product $product,
+        $arenaProductId
+    ) {
         $product->setData(self::ATTRIBUTE_PRODUCT_ARENA_ID, (int) $arenaProductId);
         $product->save();
     }
@@ -203,63 +154,14 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      */
     protected function exportImages(Mage_Catalog_Model_Product $product, $arenaProductId)
     {
-        $this->deleteExistingArenaImages($arenaProductId);
+        $this->resource->deleteExistingArenaImages($arenaProductId);
 
         $productImageUrls = $this->getProductImageUrls($product);
         if (empty($productImageUrls)) {
             return;
         }
 
-        $apiCall = $this->client->createProductImage();
-        $apiCall->setProductId($arenaProductId);
-
-        foreach ($productImageUrls as $url) {
-            try {
-                $apiCall->setProductImageUrl($url);
-
-                $apiCall->getResult();
-            } catch (\Exception $e) {
-            }
-        }
-    }
-
-    /**
-     * @param int $arenaProductId
-     */
-    protected function deleteExistingArenaImages($arenaProductId)
-    {
-        $productData = $this->getArenaProductData($arenaProductId);
-        if (!is_array($productData)) {
-            return;
-        }
-
-        $apiCall = $this->client->deleteProductImage();
-        $apiCall->setProductId($arenaProductId);
-
-        foreach ($productData['master']['images'] as $image) {
-            try {
-                $apiCall->setProductImageId((int) $image['id']);
-
-                $apiCall->getResult();
-            } catch (\Exception $e) {
-            }
-        }
-    }
-
-    /**
-     * @param int $arenaProductId
-     *
-     * @return array|null
-     */
-    protected function getArenaProductData($arenaProductId)
-    {
-        try {
-            $apiCall = $this->client->getProduct();
-            $apiCall->setProductId((int) $arenaProductId);
-
-            return $apiCall->getResult();
-        } catch (\Exception $e) {
-        }
+        $this->resource->addProductImages($arenaProductId, $productImageUrls);
     }
 
     /**

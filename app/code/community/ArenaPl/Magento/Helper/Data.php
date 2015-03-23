@@ -4,6 +4,8 @@ use ArenaPl\Client;
 
 class ArenaPl_Magento_Helper_Data extends Mage_Core_Helper_Abstract
 {
+    const CACHE_DEFAULT_TAG = 'arenapl';
+
     /**
      * @var Client
      */
@@ -63,7 +65,7 @@ class ArenaPl_Magento_Helper_Data extends Mage_Core_Helper_Abstract
 
         $funcValue = $saveFunction();
 
-        $tags[] = 'arenapl';
+        $tags[] = self::CACHE_DEFAULT_TAG;
         $this->cache->save(
             serialize($funcValue),
             $key,

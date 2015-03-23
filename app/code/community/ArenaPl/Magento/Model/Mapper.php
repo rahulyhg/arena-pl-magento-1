@@ -1,16 +1,19 @@
 <?php
 
-use ArenaPl\Client;
-
 class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
 {
+    /**
+     * EAV category attribute.
+     */
     const ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID = 'arena_taxonomy_id';
-    const ATTRIBUTE_CATEGORY_ARENA_TAXON_ID = 'arena_taxon_id';
 
     /**
-     * @var Client
+     * EAV category attribute.
      */
-    protected $client;
+    const ATTRIBUTE_CATEGORY_ARENA_TAXON_ID = 'arena_taxon_id';
+
+    const CACHE_KEY = 'arenapl_api_call';
+    const CACHE_TIMEOUT = 3600;
 
     /**
      * @var ArenaPl_Magento_Helper_Data
@@ -22,11 +25,16 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
      */
     protected $isDeveloperMode = false;
 
+    /**
+     * @var ArenaPl_Magento_Model_Resource_Mapper
+     */
+    protected $resource;
+
     protected function _construct()
     {
         $this->isDeveloperMode = Mage::getIsDeveloperMode();
+        $this->resource = Mage::getResourceSingleton('arenapl_magento/mapper');
         $this->helper = Mage::helper('arenapl_magento');
-        $this->client = $this->helper->getClient();
     }
 
     /**
@@ -139,7 +147,7 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
     {
         $taxonomyId = (int) $baseTaxon['taxonomy_id'];
 
-        $rawApiCall = $this->makeApiTaxonTreeCall(
+        $rawApiCall = $this->resource->makeApiTaxonTreeCall(
             $taxonomyId,
             $baseTaxon['taxon_id']
         );
@@ -154,39 +162,26 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
     /**
      * @param int   $taxonomyId
      * @param array $rawApiCall
+     * @param array $returnData
      *
      * @return array
      */
-    protected function parseTaxonTree($taxonomyId, array $rawApiCall)
+    protected function parseTaxonTree($taxonomyId, array $rawApiCall, array &$returnData = [])
     {
-        static $sequence = ['taxon_id', 'name', 'pretty_name'];
+        $taxonId = $rawApiCall['id'];
+        $taxons = $rawApiCall['taxons'];
+        unset($rawApiCall['id'], $rawApiCall['taxons']);
 
-        $returnArray = [];
-
-        $currentStep = -1;
-        $constructedTaxon = [
+        $returnData[] = array_merge($rawApiCall, [
+            'taxon_id' => $taxonId,
             'taxonomy_id' => $taxonomyId,
-        ];
+        ]);
 
-        array_walk_recursive($rawApiCall, function ($value) use (
-            &$currentStep,
-            &$constructedTaxon,
-            &$returnArray,
-            $taxonomyId,
-            $sequence
-        ) {
-            if (++$currentStep > 2) {
-                $currentStep = 0;
-                $returnArray[] = $constructedTaxon;
-                $constructedTaxon = [
-                    'taxonomy_id' => $taxonomyId,
-                ];
-            }
+        foreach ($taxons as $taxon) {
+            $this->parseTaxonTree($taxonomyId, $taxon, $returnData);
+        }
 
-            $constructedTaxon[$sequence[$currentStep]] = $value;
-        });
-
-        return $returnArray;
+        return $returnData;
     }
 
     /**
@@ -199,21 +194,17 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
             function () {
                 $returnData = [];
 
-                try {
-                    $result = $this->client->getTaxonomies()
-                        ->setResultsPerPage(1000)
-                        ->getResult();
-
-                    foreach ($result as $row) {
+                $taxonomiesData = $this->resource->getTaxonomies();
+                if (is_array($taxonomiesData)) {
+                    foreach ($taxonomiesData as $row) {
                         $returnData[] = $this->processRawTaxonData($row['root']);
                     }
-                } catch (\Exception $e) {
                 }
 
                 return $returnData;
             },
-            ['arenapl_api_call'],
-            3600
+            [self::CACHE_KEY],
+            self::CACHE_TIMEOUT
         );
     }
 
@@ -238,38 +229,11 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
         return $this->helper->cacheExpensiveCall(
             $cacheKey,
             function () use ($taxonomyId, $taxonId) {
-                try {
-                    $result = $this->client->getTaxon()
-                        ->setTaxonId((int) $taxonomyId)
-                        ->setTaxonChildId((int) $taxonId)
-                        ->getResult();
-
-                    return $result;
-                } catch (\Exception $e) {
-                }
+                return $this->resource->getTaxon($taxonomyId, $taxonId);
             },
-            ['arenapl_api_call'],
-            3600
+            [self::CACHE_KEY],
+            self::CACHE_TIMEOUT
         );
-    }
-
-    /**
-     * @param int $taxonomyId
-     * @param int $taxonId
-     *
-     * @return array|null
-     */
-    protected function makeApiTaxonTreeCall($taxonomyId, $taxonId)
-    {
-        try {
-            $result = $this->client->getTaxonTree()
-                ->setTaxonId((int) $taxonomyId)
-                ->setTaxonChildId((int) $taxonId)
-                ->getResult();
-
-            return $result;
-        } catch (\Exception $e) {
-        }
     }
 
     /**
