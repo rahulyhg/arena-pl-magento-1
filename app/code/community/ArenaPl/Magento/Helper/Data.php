@@ -50,7 +50,7 @@ class ArenaPl_Magento_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * @param string   $key
-     * @param callable $saveFunction
+     * @param callable $saveFunction function call result to cache
      * @param array    $tags
      * @param int      $timeout      in secs
      *
