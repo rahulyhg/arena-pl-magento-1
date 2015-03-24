@@ -284,4 +284,26 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
 
         return true;
     }
+
+    /**
+     * @return array|null
+     *
+     * @throws \RuntimeException when multiple stock locations found
+     */
+    public function getArenaStockLocation()
+    {
+        $stockLocations = $this->resource->getStockLocations();
+        if (empty($stockLocations)) {
+            return;
+        }
+
+        if (count($stockLocations) > 1) {
+            throw new \RuntimeException(sprintf(
+                'Found %d stock locations, current module version doesnt support many stock locations',
+                count($stockLocations)
+            ));
+        }
+
+        return current($stockLocations);
+    }
 }

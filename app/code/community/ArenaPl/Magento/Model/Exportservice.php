@@ -57,6 +57,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         }
 
         if ($arenaProductId) {
+            $this->updateProductStockQuantity($product, $arenaProductId);
             $this->exportImages($product, $arenaProductId);
         }
     }
@@ -67,7 +68,10 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
     protected function exportProductEmptyStock(Mage_Catalog_Model_Product $product)
     {
         if ($this->isProductExported($product)) {
-            $this->resource->archiveProduct($this->getArenaProductId($product));
+            $arenaProductId = $this->getArenaProductId($product);
+
+            $this->updateProductStockQuantity($product, $arenaProductId);
+            $this->resource->archiveProduct($arenaProductId);
         }
     }
 
@@ -95,7 +99,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      *
      * @return Mage_Catalog_Model_Resource_Category_Collection
      */
-    protected function getProductCategoryCollection(Mage_Catalog_Model_Product $product)
+    public static function getProductCategoryCollection(Mage_Catalog_Model_Product $product)
     {
         $collection = $product->getCategoryCollection();
         $collection->addAttributeToSelect(ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID);
@@ -111,7 +115,10 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      */
     protected function isProductOnStock(Mage_Catalog_Model_Product $product)
     {
-        $stockQuantity = (int) $product->getStockItem()->getQty();
+        /* @var $stockItem Mage_CatalogInventory_Model_Stock_Item */
+        $stockItem = $product->getStockItem();
+
+        $stockQuantity = (int) $stockItem->getIsInStock();
 
         return $stockQuantity > 0;
     }
@@ -185,5 +192,26 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         }
 
         return $imageUrls;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     * @param int                        $arenaProductId
+     */
+    protected function updateProductStockQuantity(
+        Mage_Catalog_Model_Product $product,
+        $arenaProductId
+    ) {
+        /* @var $stockItem Mage_CatalogInventory_Model_Stock_Item */
+        $stockItem = $product->getStockItem();
+
+        $stockLocationData = $this->mapper->getArenaStockLocation();
+
+        $this->resource->updateProductStockQuantity(
+            (int) $arenaProductId,
+            (int) $stockLocationData['id'],
+            (int) $stockItem->getQty(),
+            (bool) $stockItem->getBackorders()
+        );
     }
 }

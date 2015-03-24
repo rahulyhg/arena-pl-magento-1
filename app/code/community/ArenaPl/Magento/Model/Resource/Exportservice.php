@@ -1,5 +1,6 @@
 <?php
 
+use ArenaPl\ApiCall\ApiCallInterface;
 use ArenaPl\Client;
 
 class ArenaPl_Magento_Model_Resource_Exportservice
@@ -28,11 +29,10 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     public function ensureArenaProductVisible($arenaProductId)
     {
         try {
-            $apiCall = $this->client->restoreArchivedProduct();
-            $apiCall->setProductId($arenaProductId);
-
-            return $apiCall->getResult();
-        } catch (\Exception $e) {
+            return $this->client->restoreArchivedProduct()
+                ->setProductId($arenaProductId)
+                ->getResult();
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -43,11 +43,10 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     public function archiveProduct($arenaProductId)
     {
         try {
-            $apiCall = $this->client->archiveProduct();
-            $apiCall->setProductId($arenaProductId);
-
-            $apiCall->getResult();
-        } catch (\Exception $e) {
+            $this->client->archiveProduct()
+                ->setProductId($arenaProductId)
+                ->getResult();
+        } catch (Exception $e) {
             return;
         }
     }
@@ -62,13 +61,13 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         $productData = $this->prepareArenaCompatibleData($product);
 
         try {
-            $apiCall = $this->client->createProduct();
-            $apiCall->setProductData($productData);
+            $apiCall = $this->client->createProduct()
+                ->setProductData($productData);
 
             $result = $apiCall->getResult();
 
             return empty($result['id']) ? null : (int) $result['id'];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return;
         }
     }
@@ -77,17 +76,18 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      * @param Mage_Catalog_Model_Product $product
      * @param int                        $arenaProductId
      */
-    public function exportExistingProduct(Mage_Catalog_Model_Product $product, $arenaProductId)
-    {
+    public function exportExistingProduct(
+        Mage_Catalog_Model_Product $product,
+        $arenaProductId
+    ) {
         $productData = $this->prepareArenaCompatibleData($product);
 
         try {
-            $apiCall = $this->client->updateProduct();
-            $apiCall->setProductId($arenaProductId);
-            $apiCall->setProductData($productData);
-
-            $apiCall->getResult();
-        } catch (\Exception $e) {
+            $this->client->updateProduct()
+                ->setProductId($arenaProductId)
+                ->setProductData($productData)
+                ->getResult();
+        } catch (Exception $e) {
             return;
         }
     }
@@ -111,7 +111,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         $data['price'] = (string) $arenaCompatiblePrice;
 
         $taxonIds = [];
-        $collection = $this->getProductCategoryCollection($product);
+        $collection = ArenaPl_Magento_Model_Exportservice::getProductCategoryCollection($product);
 
         /* @var $category Mage_Catalog_Model_Category */
         foreach ($collection as $category) {
@@ -152,15 +152,14 @@ class ArenaPl_Magento_Model_Resource_Exportservice
             return;
         }
 
-        $apiCall = $this->client->deleteProductImage();
-        $apiCall->setProductId($arenaProductId);
+        $apiCall = $this->client->deleteProductImage()
+            ->setProductId($arenaProductId);
 
         foreach ($productData['master']['images'] as $image) {
             try {
-                $apiCall->setProductImageId((int) $image['id']);
-
-                $apiCall->getResult();
-            } catch (\Exception $e) {
+                $apiCall->setProductImageId((int) $image['id'])
+                    ->getResult();
+            } catch (Exception $e) {
             }
         }
     }
@@ -173,11 +172,11 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     public function getArenaProductData($arenaProductId)
     {
         try {
-            $apiCall = $this->client->getProduct();
-            $apiCall->setProductId((int) $arenaProductId);
-
-            return $apiCall->getResult();
-        } catch (\Exception $e) {
+            return $this->client->getProduct()
+                ->setProductId((int) $arenaProductId)
+                ->getResult();
+        } catch (Exception $e) {
+            return;
         }
     }
 
@@ -187,16 +186,118 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      */
     public function addProductImages($arenaProductId, array $imageUrls)
     {
-        $apiCall = $this->client->createProductImage();
-        $apiCall->setProductId($arenaProductId);
+        $apiCall = $this->client->createProductImage()
+            ->setProductId($arenaProductId);
 
         foreach ($imageUrls as $url) {
             try {
-                $apiCall->setProductImageUrl($url);
-
-                $apiCall->getResult();
-            } catch (\Exception $e) {
+                $apiCall->setProductImageUrl($url)
+                    ->getResult();
+            } catch (Exception $e) {
             }
+        }
+    }
+
+    /**
+     * @param int  $arenaProductId
+     * @param int  $stockLocationId
+     * @param int  $qty
+     * @param bool $allowBackorders
+     *
+     * @return bool
+     */
+    public function updateProductStockQuantity(
+        $arenaProductId,
+        $stockLocationId,
+        $qty,
+        $allowBackorders
+    ) {
+        $stockItemData = $this->getStockItemData($arenaProductId, $stockLocationId);
+        if (!is_array($stockItemData)) {
+            return false;
+        }
+
+        $stockItemId = (int) $stockItemData['id'];
+
+        return $this->updateStockItemData(
+            $stockItemId,
+            $stockLocationId,
+            $qty,
+            $allowBackorders
+        );
+    }
+
+    /**
+     * @param int $arenaProductId
+     * @param int $stockLocationId
+     *
+     * @return array|null
+     */
+    protected function getStockItemData($arenaProductId, $stockLocationId)
+    {
+        $productData = $this->getArenaProductData($arenaProductId);
+        if (!is_array($productData)) {
+            return;
+        }
+
+        $masterVariantId = (int) $productData['master']['id'];
+        $foundStockItems = $this->findStockItems($masterVariantId, $stockLocationId);
+        if (empty($foundStockItems)) {
+            return;
+        }
+
+        return current($foundStockItems);
+    }
+
+    /**
+     * @param int $variantId
+     * @param int $stockLocationId
+     * @param int $resultsPerPage
+     *
+     * @return array|null
+     */
+    protected function findStockItems(
+        $variantId,
+        $stockLocationId,
+        $resultsPerPage = 1000
+    ) {
+        try {
+            return $this->client->getStockItems()
+                ->setResultsPerPage((int) $resultsPerPage)
+                ->setStockLocationId((int) $stockLocationId)
+                ->setSearch(
+                    'variant_id',
+                    (int) $variantId,
+                    ApiCallInterface::SEARCH_METHOD_EQUALS
+                )
+                ->getResult();
+        } catch (Exception $e) {
+            return;
+        }
+    }
+
+    /**
+     * @param int  $stockItemId
+     * @param int  $qty
+     * @param bool $allowBackorders
+     *
+     * @return bool
+     */
+    protected function updateStockItemData(
+        $stockItemId,
+        $stockLocationId,
+        $qty,
+        $allowBackorders
+    ) {
+        try {
+            return $this->client->updateStockItem()
+                ->setStockItemId((int) $stockItemId)
+                ->setStockLocationId((int) $stockLocationId)
+                ->setCountOnHand((int) $qty)
+                ->setStockItemField('backorderable', (bool) $allowBackorders)
+                ->getResult();
+        } catch (\Exception $e) {
+            return false;
         }
     }
 }

@@ -65,4 +65,18 @@ class ArenaPl_Magento_Model_Resource_Mapper
             return;
         }
     }
+
+    /**
+     * @return array|null
+     */
+    public function getStockLocations()
+    {
+        try {
+            return $this->client->getStockLocations()
+                ->setResultsPerPage(1000)
+                ->getResult();
+        } catch (\Exception $e) {
+            return;
+        }
+    }
 }
