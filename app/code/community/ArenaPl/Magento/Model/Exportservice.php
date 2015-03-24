@@ -214,4 +214,52 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             (bool) $stockItem->getBackorders()
         );
     }
+
+    /**
+     * @return string
+     */
+    public function fullProductResync()
+    {
+        $productsCollection = $this->getProductsCollectionToSync();
+
+        Mage::dispatchEvent(
+            ArenaPl_Magento_EventInterface::EVENT_PRE_PRODUCT_FULL_RESYNC,
+            [
+                'products_collection' => $productsCollection,
+            ]
+        );
+
+        $errors = [];
+
+        foreach ($productsCollection as $product) {
+            try {
+                $this->exportProduct($product);
+            } catch (\Exception $e) {
+                $errors[$product->getEntityId()] = $e;
+            }
+        }
+
+        Mage::dispatchEvent(
+            ArenaPl_Magento_EventInterface::EVENT_POST_PRODUCT_FULL_RESYNC,
+            [
+                'products_collection' => $productsCollection,
+                'errors' => $errors,
+            ]
+        );
+
+        return empty($errors) ? 'ok' : sprintf('%d errors', count($errors));
+    }
+
+    /**
+     * @return Mage_Catalog_Model_Resource_Product_Collection
+     */
+    protected function getProductsCollectionToSync()
+    {
+        /* @var $collection Mage_Catalog_Model_Resource_Product_Collection */
+        $collection = Mage::getModel('catalog/product')->getCollection();
+
+        $collection->addAttributeToSelect('*');
+
+        return $collection;
+    }
 }

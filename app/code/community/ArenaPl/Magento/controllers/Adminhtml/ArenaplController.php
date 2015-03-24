@@ -30,6 +30,16 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
         $this->renderLayout();
     }
 
+    public function productFullResyncAction()
+    {
+        /* @var $exporter ArenaPl_Magento_Model_ExportService */
+        $exporter = Mage::getSingleton('arenapl_magento/exportservice');
+
+        $result = $exporter->fullProductResync();
+
+        echo $result;
+    }
+
     public function saveCategoryMappingAction()
     {
         $data = $this->getRequest()->getPost();
