@@ -22,7 +22,7 @@
     <tbody>
         <?php
         foreach ($this->getAllCategories() as $category):
-            $currentCategoryEntityId = $category->getEntityId();
+            $currentCategoryEntityId = (int) $category->getEntityId();
             $this->setCategory($category);
             ?>
             <tr id="category-<?php echo $currentCategoryEntityId; ?>">
@@ -85,6 +85,7 @@
                             ?>
                         </select>
                     </div>
+                    <?php echo $this->getSetAttributesButtonHtml($currentCategoryEntityId, $mappedTaxonomyId, $mappedTaxonId); ?>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -107,7 +108,7 @@
         };
 
         var loadTaxons = function () {
-            $this = $(this);
+            var $this = $(this);
             var selectedOption = $this.val();
             var $taxonsDiv = $this.closest('td').find('div.arenapl_taxons');
 
@@ -130,6 +131,34 @@
                     });
         };
 
+        var loadAttributesNum = function () {
+            var $this = $(this);
+            var selectedOption = $this.val();
+
+
+            $.getJSON('<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/ajax'); ?>?task=load_taxon_attributes_num&selected_taxonomy=' + selectedOption)
+                    .done(function (result) {
+                        if (result.status === 'error') {
+                            throw new Error(result.message);
+                        }
+
+                        var $attributesButton = $this.closest('td').find("button[class^='set-attributes-'],button[class*=' set-attributes-']");
+                        var $attributesSpan = $attributesButton.find("span:contains('Atrybuty')");
+                        $attributesSpan.each(function () {
+                            var $this = $(this);
+                            if ($this.children().length) {
+                                return;
+                            }
+
+                            $this.text('Atrybuty (' + result.attributes_num + ')');
+                        });
+
+                    })
+                    .fail(function (result) {
+                        throw new Error('Failed fetching data');
+                    });
+        };
+
         $(function () {
             $('#arenapl-category-mapper select').select2();
 
@@ -138,7 +167,8 @@
                     .on(EVENT_SELECT_CHANGED, function (event) {
                         var $target = $(event.target);
                         $target.select2();
-                    });
+                    })
+                    .on('change', 'select[name="arenapl_taxons[]"]', loadAttributesNum);
 
             window.arenaplSaveCategories = function () {
                 var dataToSave = $('#arenapl-category-mapper select[name="arenapl_taxons[]"]').serialize();

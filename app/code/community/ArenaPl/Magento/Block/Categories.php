@@ -189,4 +189,32 @@ class ArenaPl_Magento_Block_Categories extends Mage_Core_Block_Template
     {
         return $this->getChildHtml('save_button');
     }
+
+    /**
+     * @param int $categoryEntityId
+     * @param int $taxonomyId
+     * @param int $taxonId
+     *
+     * @return string
+     */
+    public function getSetAttributesButtonHtml(
+        $categoryEntityId,
+        $taxonomyId = 0,
+        $taxonId = 0
+    ) {
+        $categoryAttributesNum = $this->mapper->getTotalCategoryAttributesNum(
+            (int) $taxonomyId,
+            (int) $taxonId
+        );
+
+        /* @var $block Mage_Adminhtml_Block_Widget_Button */
+        $block = $this->getLayout()->createBlock('adminhtml/widget_button');
+        $block->setData([
+            'label'     => sprintf('Atrybuty (%d)', $categoryAttributesNum),
+            'class'     => sprintf('set-attributes-%d', $categoryEntityId),
+            'onclick'   => 'arenaplSetCategoryAttributes();',
+        ]);
+
+        return $block->toHtml();
+    }
 }

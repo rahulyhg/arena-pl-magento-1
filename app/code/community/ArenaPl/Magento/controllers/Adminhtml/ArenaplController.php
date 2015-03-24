@@ -69,7 +69,7 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
         $task = $request->get('task');
         switch ($task) {
             case 'load_taxon_tree':
-                $selectedTaxonomy = $request->get('selected_taxonomy');
+                $selectedTaxonomy = (string) $request->get('selected_taxonomy');
                 if (empty($selectedTaxonomy)) {
                     echo $this->returnErroredAjax('empty selected taxonomy');
                 }
@@ -89,6 +89,26 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
 
                 echo $this->returnOkAjax([
                     'html' => $categoriesBlock->toHtml(),
+                ]);
+                break;
+            case 'load_taxon_attributes_num':
+                $selectedTaxonomy = (string) $request->get('selected_taxonomy');
+                if (empty($selectedTaxonomy)) {
+                    echo $this->returnErroredAjax('empty selected taxonomy');
+                }
+
+                list($categoryEntityId, $taxonomyId, $taxonId) = explode('-', $selectedTaxonomy, 3);
+
+                /* @var $mapper ArenaPl_Magento_Model_Mapper */
+                $mapper = Mage::getSingleton('arenapl_magento/mapper');
+
+                $attrubitesNum = (int) $mapper->getTotalCategoryAttributesNum(
+                    $taxonomyId,
+                    $taxonId
+                );
+
+                echo $this->returnOkAjax([
+                    'attributes_num' => $attrubitesNum,
                 ]);
                 break;
             default:

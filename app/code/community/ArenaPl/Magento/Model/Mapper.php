@@ -306,4 +306,43 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
 
         return current($stockLocations);
     }
+
+    /**
+     * @param int $taxonomyId
+     * @param int $taxonId
+     *
+     * @return array
+     */
+    public function getCategoryAttributes($taxonomyId, $taxonId)
+    {
+        $optionTypes = [];
+        $properties = [];
+
+        $taxonData = $this->resource->getTaxon($taxonomyId, $taxonId);
+        if (is_array($taxonData) && !empty($taxonData['prototype'])) {
+            $optionTypes = empty($taxonData['prototype']['spree_option_types']) ? [] : $taxonData['prototype']['spree_option_types'];
+            $properties =  empty($taxonData['prototype']['spree_properties']) ? [] : $taxonData['prototype']['spree_properties'];
+        }
+
+        return [
+            'option_types' => $optionTypes,
+            'properties' => $properties,
+        ];
+    }
+
+    /**
+     * @param int $taxonomyId
+     * @param int $taxonId
+     *
+     * @return int
+     */
+    public function getTotalCategoryAttributesNum($taxonomyId, $taxonId)
+    {
+        $categoryAttributes = $this->getCategoryAttributes(
+            (int) $taxonomyId,
+            (int) $taxonId
+        );
+
+        return count($categoryAttributes['option_types']) + count($categoryAttributes['properties']);
+    }
 }
