@@ -7,6 +7,9 @@ class ArenaPl_Magento_Block_Categories extends Mage_Core_Block_Template
      */
     const CATEGORY_SEPARATOR = ' -> ';
 
+    const CACHE_KEY = 'arenapl_categories';
+    const CACHE_TIMEOUT = 3600;
+
     /**
      * @var ArenaPl_Magento_Model_Mapper
      */
@@ -120,16 +123,21 @@ class ArenaPl_Magento_Block_Categories extends Mage_Core_Block_Template
             crc32(serialize($taxonData))
         );
 
-        return $this->helper->cacheExpensiveCall($cacheKey, function () use ($taxonData) {
-            $baseTaxon = $this->mapper->getBaseTaxon($taxonData);
-            $taxonomyTree = $this->mapper->getTaxonTree($baseTaxon);
+        return $this->helper->cacheExpensiveCall(
+            $cacheKey,
+            function () use ($taxonData) {
+                $baseTaxon = $this->mapper->getBaseTaxon($taxonData);
+                $taxonomyTree = $this->mapper->getTaxonTree($baseTaxon);
 
-            foreach ($taxonomyTree as &$taxon) {
-                $taxon['name'] = $taxon['pretty_name'];
-            }
+                foreach ($taxonomyTree as &$taxon) {
+                    $taxon['name'] = $taxon['pretty_name'];
+                }
 
-            return $taxonomyTree;
-        }, ['arenapl_categories'], 360000);
+                return $taxonomyTree;
+            },
+            [self::CACHE_KEY],
+            self::CACHE_TIMEOUT
+        );
     }
 
     /**
