@@ -99,11 +99,23 @@
 
     (function ($) {
         var EVENT_SELECT_CHANGED = 'arenapl_select_changed';
+        var EVENT_CATEGORIES_DIRTY = 'arenapl_categories_dirty';
 
         window.Element = window.Element || {
             show: function () {
             },
             hide: function () {
+            }
+        };
+
+        var manageAttributesButtons = function (lock) {
+            var $attributeButtons = $("#arenapl-category-mapper button[class^='set-attributes-'], #arenapl-category-mapper button[class*=' set-attributes-']");
+
+            if (lock) {
+                $attributeButtons.hide();
+            }
+            else {
+                $attributeButtons.show();
             }
         };
 
@@ -135,7 +147,6 @@
             var $this = $(this);
             var selectedOption = $this.val();
 
-
             $.getJSON('<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/ajax'); ?>?task=load_taxon_attributes_num&selected_taxonomy=' + selectedOption)
                     .done(function (result) {
                         if (result.status === 'error') {
@@ -144,6 +155,7 @@
 
                         var $attributesButton = $this.closest('td').find("button[class^='set-attributes-'],button[class*=' set-attributes-']");
                         var $attributesSpan = $attributesButton.find("span:contains('Atrybuty')");
+
                         $attributesSpan.each(function () {
                             var $this = $(this);
                             if ($this.children().length) {
@@ -166,9 +178,19 @@
                     .on('change', 'select[name="arenapl_main_taxonomies"]', loadTaxons)
                     .on(EVENT_SELECT_CHANGED, function (event) {
                         var $target = $(event.target);
+
                         $target.select2();
+                        $target.trigger(EVENT_CATEGORIES_DIRTY);
                     })
-                    .on('change', 'select[name="arenapl_taxons[]"]', loadAttributesNum);
+                    .on(EVENT_CATEGORIES_DIRTY, function (event) {
+                        manageAttributesButtons(true);
+                    })
+                    .on('change', 'select[name="arenapl_taxons[]"]', loadAttributesNum)
+                    .on('change', 'select[name="arenapl_taxons[]"]', function (event) {
+                        var $target = $(event.target);
+
+                        $target.trigger(EVENT_CATEGORIES_DIRTY);
+                    });
 
             window.arenaplSaveCategories = function () {
                 var dataToSave = $('#arenapl-category-mapper select[name="arenapl_taxons[]"]').serialize();
@@ -182,6 +204,8 @@
                             if (jsonResult.status === 'error') {
                                 throw new Error(jsonResult.message);
                             }
+
+                            manageAttributesButtons(false);
                         })
                         .fail(function (result) {
                             throw new Error('Failed saving data');
