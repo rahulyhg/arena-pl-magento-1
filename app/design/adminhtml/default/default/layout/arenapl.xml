@@ -27,6 +27,19 @@
             <block type="arenapl_magento/configchecker" name="configchecker" template="arenapl/configchecker.phtml" />
         </reference>
     </adminhtml_arenapl_categories>
+    <adminhtml_arenapl_categoryattributes>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>arenapl_magento</menupath>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="arenapl_magento/categoryattributes" name="arena_category_attributes" template="arenapl/category_attributes.phtml" />
+        </reference>
+        <reference name="arena_categories">
+            <block type="arenapl_magento/configchecker" name="configchecker" template="arenapl/configchecker.phtml" />
+        </reference>
+    </adminhtml_arenapl_categoryattributes>
     <adminhtml_arenapl_help>
         <reference name="menu">
             <action method="setActive">

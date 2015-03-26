@@ -212,7 +212,7 @@ class ArenaPl_Magento_Block_Categories extends Mage_Core_Block_Template
         $block->setData([
             'label'     => sprintf('Atrybuty (%d)', $categoryAttributesNum),
             'class'     => sprintf('set-attributes-%d', $categoryEntityId),
-            'onclick'   => 'arenaplSetCategoryAttributes();',
+            'onclick'   => sprintf('arenaplSetCategoryAttributes(%d);', $categoryEntityId),
         ]);
 
         return $block->toHtml();
