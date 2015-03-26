@@ -16,10 +16,10 @@ $installer->run("
 
 $installer->run("
     CREATE TABLE IF NOT EXISTS `arenapl_mapper_attribute_value` (
-      `value_id` int(10) unsigned NOT NULL,
+      `option_id` int(10) unsigned NOT NULL,
       `arena_option_value_name` varchar(250) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-      PRIMARY KEY (`value_id`),
-      CONSTRAINT `FK_ARENAPL_MAPPER_EAV_ATTRIBUTE_VALUE` FOREIGN KEY (`value_id`) REFERENCES `eav_attribute_option_value` (`value_id`)
+      PRIMARY KEY (`option_id`),
+      CONSTRAINT `FK_ARENAPL_MAPPER_EAV_ATTRIBUTE_OPTION` FOREIGN KEY (`option_id`) REFERENCES `eav_attribute_option_value` (`option_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 ");
 
