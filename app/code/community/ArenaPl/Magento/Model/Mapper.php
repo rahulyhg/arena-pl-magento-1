@@ -345,4 +345,396 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
 
         return count($categoryAttributes['option_types']) + count($categoryAttributes['properties']);
     }
+
+    /**
+     * @param Mage_Catalog_Model_Category $category
+     *
+     * @return Mage_Catalog_Model_Resource_Eav_Attribute[]
+     */
+    public function getCategoryProductsAttributes(Mage_Catalog_Model_Category $category)
+    {
+        static $doNotDisplayAttributes = [
+            ArenaPl_Magento_Model_Exportservice::ATTRIBUTE_PRODUCT_ARENA_ID,
+        ];
+
+        $returnAttributes = [];
+
+        /* @var $categoryProducts Mage_Catalog_Model_Resource_Product_Collection */
+        $categoryProducts = $category->getProductCollection();
+
+        /* @var $product Mage_Catalog_Model_Product */
+        foreach ($categoryProducts as $product) {
+            $attributes = $product->getAttributes();
+
+            /* @var $attribute Mage_Catalog_Model_Resource_Eav_Attribute */
+            foreach ($attributes as $attribute) {
+                $isUserDefined = $attribute->getData('is_user_defined');
+                if (!$isUserDefined
+                    || in_array($attribute->getAttributeCode(), $doNotDisplayAttributes)
+                ) {
+                    continue;
+                }
+
+                $returnAttributes[$attribute->getAttributeId()] = $attribute;
+            }
+        }
+
+        return $returnAttributes;
+    }
+
+    /**
+     * @param int   $categoryId
+     * @param array $attributesMapping
+     * @param array $optionsMapping
+     *
+     * @return bool
+     */
+    public function saveCategoryAttributes(
+        $categoryId,
+        array $attributesMapping,
+        array $optionsMapping
+    ) {
+        $category = ArenaPl_Magento_Helper_Data::getCategory((int) $categoryId);
+
+        if (!$category instanceof Mage_Catalog_Model_Category) {
+            return false;
+        }
+
+        if (!$this->hasMappedTaxon($category)) {
+            return false;
+        }
+
+        $mappedTaxonData = $this->getMappedArenaTaxon($category);
+        if (empty($mappedTaxonData)) {
+            return false;
+        }
+
+        $readConnection =  ArenaPl_Magento_Helper_Data::getDBReadConnection();
+        $writeConnection = ArenaPl_Magento_Helper_Data::getDBWriteConnection();
+
+        Mage::dispatchEvent(
+            ArenaPl_Magento_EventInterface::EVENT_PRE_SAVE_MAPPED_CATEGORY_ATTRIBUTES,
+            [
+                'category' => $category,
+                'attributes_mapping' => $attributesMapping,
+                'options_mapping' => $optionsMapping,
+            ]
+        );
+
+        $writeConnection->beginTransaction();
+
+        $this->deleteCurrentAttributeMapping($category, $readConnection, $writeConnection);
+
+        $this->saveAttributesMapping($category, $mappedTaxonData, $attributesMapping, $writeConnection);
+        $this->saveOptionsMapping($category, $mappedTaxonData, $optionsMapping, $readConnection, $writeConnection);
+
+        $writeConnection->commit();
+
+        Mage::dispatchEvent(
+            ArenaPl_Magento_EventInterface::EVENT_POST_SAVE_MAPPED_CATEGORY_ATTRIBUTES,
+            [
+                'category' => $category,
+                'attributes_mapping' => $attributesMapping,
+                'options_mapping' => $optionsMapping,
+            ]
+        );
+
+        return true;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Category $category
+     * @param Varien_Db_Adapter_Interface $readConnection
+     * @param Varien_Db_Adapter_Interface $writeConnection
+     */
+    protected function deleteCurrentAttributeMapping(
+        Mage_Catalog_Model_Category $category,
+        Varien_Db_Adapter_Interface $readConnection,
+        Varien_Db_Adapter_Interface $writeConnection
+    ) {
+        $categoryAttributesIds = array_keys($this->getCategoryProductsAttributes($category));
+        if (empty($categoryAttributesIds)) {
+            return;
+        }
+
+        $writeConnection->delete(ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE, [
+            'attribute_id IN (?)' => $categoryAttributesIds,
+        ]);
+
+        $attributesOptionsIds = $this->getAttributesOptionsIds(
+            $readConnection,
+            $categoryAttributesIds
+        );
+        if (empty($attributesOptionsIds)) {
+            return;
+        }
+
+        $writeConnection->delete(ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE_OPTION, [
+            'option_id IN (?)' => $attributesOptionsIds,
+        ]);
+    }
+
+    /**
+     * @param Varien_Db_Adapter_Interface $readConnection
+     * @param int[]                       $categoryAttributesIds
+     *
+     * @return int[]
+     */
+    protected function getAttributesOptionsIds(
+        Varien_Db_Adapter_Interface $readConnection,
+        array $categoryAttributesIds
+    ) {
+        $result = $readConnection
+            ->select()
+            ->from('eav_attribute_option', 'option_id')
+            ->distinct()
+            ->where(
+                'attribute_id IN (?)',
+                array_unique($categoryAttributesIds),
+                Zend_Db::PARAM_INT
+            )
+            ->query();
+
+        $attributesOptionsIds = [];
+        while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+            $attributesOptionsIds[] = (int) $row['option_id'];
+        }
+
+        return $attributesOptionsIds;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Category $category
+     * @param array                       $mappedTaxonData
+     * @param array                       $attributesMapping
+     * @param Varien_Db_Adapter_Interface $writeConnection
+     */
+    protected function saveAttributesMapping(
+        Mage_Catalog_Model_Category $category,
+        array $mappedTaxonData,
+        array $attributesMapping,
+        Varien_Db_Adapter_Interface $writeConnection
+    ) {
+        $filteredAttributesMapping = $this->getFilteredCategoryAttributes(
+            $category,
+            $mappedTaxonData,
+            $attributesMapping
+        );
+
+        if (empty($filteredAttributesMapping)) {
+            return;
+        }
+
+        $insertData = [];
+        foreach ($filteredAttributesMapping as $attributeId => $arenaValue) {
+            $insertData[] = [
+                'attribute_id' => $attributeId,
+                'arena_option_name' => $arenaValue,
+            ];
+        }
+
+        $writeConnection->insertMultiple(
+            ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE,
+            $insertData
+        );
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Category $category
+     * @param array                       $mappedTaxonData
+     * @param array                       $attributesMapping
+     *
+     * @return array
+     */
+    protected function getFilteredCategoryAttributes(
+        Mage_Catalog_Model_Category $category,
+        array $mappedTaxonData,
+        array $attributesMapping
+    ) {
+        $categoryAttributesIds = array_keys($this->getCategoryProductsAttributes($category));
+        if (empty($categoryAttributesIds)) {
+            return [];
+        }
+
+        $attributesMapping = array_intersect_key(
+            $attributesMapping,
+            array_flip($categoryAttributesIds)
+        );
+
+        $attributesMapping = array_map('trim', $attributesMapping);
+
+        $arenaCategoryAttributes = $this->getCategoryAttributes(
+            $mappedTaxonData['taxonomy_id'],
+            $mappedTaxonData['taxon_id']
+        );
+
+        $validArenaCategoryAttributes = [];
+        foreach ($arenaCategoryAttributes['option_types'] as $data) {
+            $validArenaCategoryAttributes[] = $data['name'];
+        }
+        foreach ($arenaCategoryAttributes['properties'] as $data) {
+            $validArenaCategoryAttributes[] = $data['name'];
+        }
+
+        $attributesMapping = array_filter($attributesMapping, function ($val) use ($validArenaCategoryAttributes) {
+            if (empty($val)) {
+                return false;
+            }
+
+            return in_array($val, $validArenaCategoryAttributes, true);
+        });
+
+        return $attributesMapping;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Category $category
+     * @param array                       $mappedTaxonData
+     * @param array                       $optionsMapping
+     * @param Varien_Db_Adapter_Interface $readConnection
+     * @param Varien_Db_Adapter_Interface $writeConnection
+     */
+    protected function saveOptionsMapping(
+        Mage_Catalog_Model_Category $category,
+        array $mappedTaxonData,
+        array $optionsMapping,
+        Varien_Db_Adapter_Interface $readConnection,
+        Varien_Db_Adapter_Interface $writeConnection
+    ) {
+        $filteredOptionsMapping = $this->getFilteredCategoryOptions(
+            $category,
+            $mappedTaxonData,
+            $optionsMapping,
+            $readConnection
+        );
+
+        if (empty($filteredOptionsMapping)) {
+            return;
+        }
+
+        $insertData = [];
+        foreach ($filteredOptionsMapping as $optionId => $arenaValue) {
+            $insertData[] = [
+                'option_id' => $optionId,
+                'arena_option_value_name' => $arenaValue,
+            ];
+        }
+
+        $writeConnection->insertMultiple(
+            ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE_OPTION,
+            $insertData
+        );
+    }
+
+    protected function getFilteredCategoryOptions(
+        Mage_Catalog_Model_Category $category,
+        array $mappedTaxonData,
+        array $optionsMapping,
+        Varien_Db_Adapter_Interface $readConnection
+    ) {
+        $categoryAttributesIds = array_keys($this->getCategoryProductsAttributes($category));
+        if (empty($categoryAttributesIds)) {
+            return [];
+        }
+
+        $attributesOptionsIds = $this->getAttributesOptionsIds(
+            $readConnection,
+            $categoryAttributesIds
+        );
+        if (empty($attributesOptionsIds)) {
+            return;
+        }
+
+        $optionsMapping = array_intersect_key(
+            $optionsMapping,
+            array_flip($attributesOptionsIds)
+        );
+
+        $optionsMapping = array_map('trim', $optionsMapping);
+
+        $arenaCategoryAttributes = $this->getCategoryAttributes(
+            $mappedTaxonData['taxonomy_id'],
+            $mappedTaxonData['taxon_id']
+        );
+
+        $validArenaCategoryOptions = [];
+        foreach ($arenaCategoryAttributes['option_types'] as $data) {
+            foreach ($data['spree_option_values'] as $value) {
+                $validArenaCategoryOptions[] = $value['name'];
+            }
+        }
+
+        $optionsMapping = array_filter($optionsMapping, function ($val) use ($validArenaCategoryOptions) {
+            if (empty($val)) {
+                return false;
+            }
+
+            return in_array($val, $validArenaCategoryOptions, true);
+        });
+
+        return $optionsMapping;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return array
+     */
+    public function getMappedProductAttributes(Mage_Catalog_Model_Product $product)
+    {
+        $readConnection = ArenaPl_Magento_Helper_Data::getDBReadConnection();
+
+        $productAttributesIds = $this->getProductAttributeIds($product);
+        $mappedAttributes = $this->getMappedAttributes($productAttributesIds, $readConnection);
+
+        return $mappedAttributes;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return int[]
+     */
+    protected function getProductAttributeIds(Mage_Catalog_Model_Product $product)
+    {
+        $productAttributesIds = [];
+
+        $productAttributes = $product->getAttributes();
+        foreach ($productAttributes as $attribute) {
+            $attributeId = $attribute->getAttributeId();
+            if ($attributeId) {
+                $productAttributesIds[] = (int) $attributeId;
+            }
+        }
+
+        return $productAttributesIds;
+    }
+
+    /**
+     * @param int[]                       $attributesIds
+     * @param Varien_Db_Adapter_Interface $readConnection
+     *
+     * @return array
+     */
+    protected function getMappedAttributes(
+        array $attributesIds,
+        Varien_Db_Adapter_Interface $readConnection
+    ) {
+        $result = $readConnection
+            ->select()
+            ->from(ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE)
+            ->where(
+                'attribute_id IN (?)',
+                array_unique($attributesIds),
+                Zend_Db::PARAM_INT
+            )
+            ->query();
+
+        $mappedAattributes = [];
+        while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+            $mappedAattributes[$row['attribute_id']] = (string) $row['arena_option_name'];
+        }
+
+        return $mappedAattributes;
+    }
 }

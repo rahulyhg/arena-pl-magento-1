@@ -16,6 +16,18 @@ interface ArenaPl_Magento_EventInterface
 
     /**
      * Event data:
+     * - 'taxons_data' => array.
+     */
+    const EVENT_PRE_SAVE_MAPPED_CATEGORY_ATTRIBUTES = 'arenapl_pre_save_mapped_category_attrs';
+
+    /**
+     * Event data:
+     * - 'saved_categories' => Mage_Catalog_Model_Resource_Category_Collection.
+     */
+    const EVENT_POST_SAVE_MAPPED_CATEGORY_ATTRIBUTES = 'arenapl_post_save_mapped_category_attrs';
+
+    /**
+     * Event data:
      * - 'products_collection' => Mage_Catalog_Model_Resource_Product_Collection.
      */
     const EVENT_PRE_PRODUCT_FULL_RESYNC = 'arenapl_pre_product_full_resync';

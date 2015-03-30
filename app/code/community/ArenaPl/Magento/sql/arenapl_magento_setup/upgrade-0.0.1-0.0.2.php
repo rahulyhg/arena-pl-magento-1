@@ -6,7 +6,7 @@ $installer = $this;
 $installer->startSetup();
 
 $installer->run("
-    CREATE TABLE IF NOT EXISTS `arenapl_mapper_attribute` (
+    CREATE TABLE IF NOT EXISTS `" . ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE . "` (
       `attribute_id` smallint(5) unsigned NOT NULL,
       `arena_option_name` varchar(250) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
       PRIMARY KEY (`attribute_id`),
@@ -15,7 +15,7 @@ $installer->run("
 ");
 
 $installer->run("
-    CREATE TABLE IF NOT EXISTS `arenapl_mapper_attribute_value` (
+    CREATE TABLE IF NOT EXISTS `" . ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE_OPTION . "` (
       `option_id` int(10) unsigned NOT NULL,
       `arena_option_value_name` varchar(250) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
       PRIMARY KEY (`option_id`),

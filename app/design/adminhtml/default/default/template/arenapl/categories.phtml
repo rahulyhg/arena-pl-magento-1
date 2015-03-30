@@ -214,6 +214,10 @@
                             window.Element.hide('loading-mask');
                         });
             };
+
+            window.arenaplSetCategoryAttributes = function (categoryId) {
+                window.location = '<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/categoryattributes'); ?>?category_id=' + categoryId;
+            };
         });
     }(jQuery));
 </script>

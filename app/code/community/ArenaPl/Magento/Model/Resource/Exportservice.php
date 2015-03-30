@@ -300,4 +300,25 @@ class ArenaPl_Magento_Model_Resource_Exportservice
             return false;
         }
     }
+
+    /**
+     * @param int    $arenaProductId
+     * @param int    $propertyId
+     * @param scalar $value
+     */
+    public function saveArenaProductProperty(
+        $arenaProductId,
+        $propertyId,
+        $value
+    ) {
+        try {
+            return $this->client->setProductProperty()
+                ->setProductId((int) $arenaProductId)
+                ->setProductPropertyId((int) $propertyId)
+                ->setPropertyValue($value)
+                ->getResult();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
 }

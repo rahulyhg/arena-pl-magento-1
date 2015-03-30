@@ -40,6 +40,24 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
         echo $result;
     }
 
+    public function saveCategoryAttributesAction()
+    {
+        $data = $this->getRequest()->getPost();
+
+        $categoryId = empty($data['category_id']) ? 0 : (int) $data['category_id'];
+        $attributesMapping = empty($data['attributes_mapping']) ? [] : $data['attributes_mapping'];
+        $optionsMapping = empty($data['options_mapping']) ? [] : $data['options_mapping'];
+
+        /* @var $mapper ArenaPl_Magento_Model_Mapper */
+        $mapper = Mage::getSingleton('arenapl_magento/mapper');
+
+        if ($mapper->saveCategoryAttributes($categoryId, $attributesMapping, $optionsMapping)) {
+            echo $this->returnOkAjax();
+        } else {
+            echo $this->returnErroredAjax('Błąd zapisu atrybutów kategorii');
+        }
+    }
+
     public function saveCategoryMappingAction()
     {
         $data = $this->getRequest()->getPost();
@@ -60,6 +78,13 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
         } else {
             echo $this->returnErroredAjax('Błąd zapisu kategorii');
         }
+    }
+
+    public function categoryAttributesAction()
+    {
+        $this->loadLayout();
+
+        $this->renderLayout();
     }
 
     public function ajaxAction()

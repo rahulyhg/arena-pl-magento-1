@@ -4,6 +4,9 @@ use ArenaPl\Client;
 
 class ArenaPl_Magento_Model_Resource_Mapper
 {
+    const DB_TABLE_MAPPER_ATTRIBUTE = 'arenapl_mapper_attribute';
+    const DB_TABLE_MAPPER_ATTRIBUTE_OPTION = 'arenapl_mapper_attribute_option';
+
     /**
      * @var Client
      */
