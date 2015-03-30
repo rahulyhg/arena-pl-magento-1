@@ -39,7 +39,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         }
 
         $this->exportProductProperties($product);
-        //$this->exportProductOptionValues($product);
+        $this->exportProductOptionValues($product);
     }
 
     /**
@@ -330,22 +330,99 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         $mappedAttributeOptions = $this->getMappedAttributeOptions(
             array_keys($mappedProductAttributes)
         );
+        if (empty($mappedAttributeOptions)) {
+            return;
+        }
+
+        $mappedAttributesIds = array_keys($mappedAttributeOptions);
+        $mappedAttributes = [];
+        foreach ($product->getAttributes() as $attribute) {
+            $attributeId = (int) $attribute->getAttributeId();
+            if (in_array($attributeId, $mappedAttributesIds)) {
+                $mappedAttributes[$attributeId] = $attribute;
+            }
+        }
+
+        $productOptionValuesNames = [];
+        foreach ($mappedAttributeOptions as $attributeId => $mappedOptions) {
+            if (isset($mappedAttributes[$attributeId])) {
+                $code = $mappedAttributes[$attributeId]->getAttributeCode();
+                $attributeValue = $product->getData($code);
+                if (isset($mappedOptions[$attributeValue])) {
+                    $productOptionValuesNames[] = $mappedOptions[$attributeValue];
+                }
+            }
+        }
+
+        $arenaProductId = (int) $product->getArenaProductId();
+
+        $productData = $this->resource->getArenaProductData($arenaProductId);
+        if (!is_array($productData)) {
+            return;
+        }
+
+        $prototypeTaxonId = current($productData['taxon_ids']);
+        $prototypeCategory = null;
+        /* @var $category Mage_Catalog_Model_Category */
+        foreach (self::getProductCategoryCollection($product) as $category) {
+            if ((int) $category->getArenaTaxonId() === $prototypeTaxonId) {
+                $prototypeCategory = $category;
+                break;
+            }
+        }
+
+        if (!$prototypeCategory) {
+            return;
+        }
+
+        $prototypeTaxonomyId = (int) $prototypeCategory->getArenaTaxonomyId();
+        $prototype = $this->mapper->getTaxonPrototype($prototypeTaxonomyId, $prototypeTaxonId);
+
+        $translatedOptionTypes = [];
+        foreach ($prototype['spree_option_types'] as $optionType) {
+            foreach ($optionType['spree_option_values'] as $optionValue) {
+                if (in_array($optionValue['name'], $productOptionValuesNames)) {
+                    $translatedOptionTypes[] = $optionValue['id'];
+                }
+            }
+        }
+        if (empty($translatedOptionTypes)) {
+            return;
+        }
+
+        $this->resource->saveArenaProductVariantOptionValues(
+            $arenaProductId,
+            $productData['master']['id'],
+            $translatedOptionTypes
+        );
     }
 
     protected function getMappedAttributeOptions(array $mappedProductAttributesIds)
     {
         $readConnection = ArenaPl_Magento_Helper_Data::getDBReadConnection();
 
-        $result = $readConnection
+        $query = $readConnection
             ->select()
-            ->from(ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE_OPTION)
-            ->joinInner($name, $cond)
+            ->from([
+                'amao' => ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE_OPTION,
+            ])
+            ->joinInner([
+                'eao' => 'eav_attribute_option',
+            ], 'eao.option_id=amao.option_id', 'eao.attribute_id')
             ->where(
-                'attribute_id IN (?)',
-                array_unique($attributesIds),
+                'eao.attribute_id IN (?)',
+                $mappedProductAttributesIds,
                 Zend_Db::PARAM_INT
-            );
+            )->query(Zend_Db::FETCH_ASSOC);
 
-        $res = (string) $result;
+        $mappedOptions = [];
+        while ($row = $query->fetch()) {
+            if (!isset($mappedOptions[$row['attribute_id']])) {
+                $mappedOptions[$row['attribute_id']] = [];
+            }
+            $mappedOptions[$row['attribute_id']][$row['option_id']] = $row['arena_option_value_name'];
+        }
+
+        return $mappedOptions;
     }
 }

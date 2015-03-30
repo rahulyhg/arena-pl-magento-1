@@ -79,6 +79,21 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
     }
 
     /**
+     * @param int $taxonomyId
+     * @param int $taxonId
+     *
+     * @return array|null
+     */
+    public function getTaxonPrototype($taxonomyId, $taxonId)
+    {
+        $data = $this->makeApiTaxonCall($taxonomyId, $taxonId);
+
+        if (is_array($data)) {
+            return $data['prototype'];
+        }
+    }
+
+    /**
      * @param array $rawData
      *
      * @return array

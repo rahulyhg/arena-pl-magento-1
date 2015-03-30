@@ -321,4 +321,27 @@ class ArenaPl_Magento_Model_Resource_Exportservice
             return false;
         }
     }
+
+    /**
+     * @param int   $arenaProductId
+     * @param int   $variantId
+     * @param int[] $optionValuesIds
+     *
+     * @return array|bool
+     */
+    public function saveArenaProductVariantOptionValues(
+        $arenaProductId,
+        $variantId,
+        array $optionValuesIds
+    ) {
+        try {
+            return $this->client->updateProductVariant()
+                ->setOptionValueIds($optionValuesIds)
+                ->setProductVariantId((int) $variantId)
+                ->setProductId((int) $arenaProductId)
+                ->getResult();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
 }
