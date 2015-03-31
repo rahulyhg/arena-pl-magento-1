@@ -80,7 +80,7 @@ if ($this->hasMappedTaxon()):
                     echo "<td class=\"magento_part\">{$attribute->getStoreLabel()}";
                     echo '<div class="magento_attributes">';
                     foreach ($attributesToDisplay as $name => $label) {
-                        echo "<p magento_option_name=\"$name\">$label</p>";
+                        echo "<p magento_option_name=\"$name\">- $label</p>";
                     }
                     echo '</div>';
                     echo '</td>';
