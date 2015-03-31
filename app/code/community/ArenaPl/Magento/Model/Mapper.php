@@ -706,6 +706,84 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
     }
 
     /**
+     * @param Mage_Catalog_Model_Category $category
+     *
+     * @return array
+     */
+    public function getMappedCategoryAttributes(Mage_Catalog_Model_Category $category)
+    {
+        $productAttributes = $this->getCategoryProductsAttributes($category);
+        if (empty($productAttributes)) {
+            return [];
+        }
+
+        $readConnection = ArenaPl_Magento_Helper_Data::getDBReadConnection();
+
+        return $this->getMappedAttributes(
+            array_keys($productAttributes),
+            $readConnection
+        );
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Category $category
+     *
+     * @return array
+     */
+    public function getMappedCategoryAttributesOptions(Mage_Catalog_Model_Category $category)
+    {
+        $productAttributes = $this->getCategoryProductsAttributes($category);
+        if (empty($productAttributes)) {
+            return [];
+        }
+
+        $mappedOptions = $this->getMappedAttributeOptions(array_keys($productAttributes));
+
+        $flattedOptions = [];
+        foreach ($mappedOptions as $options) {
+            $flattedOptions += $options;
+        }
+
+        return $flattedOptions;
+    }
+
+    /**
+     * @param int[] $productAttributesIds
+     *
+     * @return array
+     */
+    public function getMappedAttributeOptions(array $productAttributesIds)
+    {
+        $readConnection = ArenaPl_Magento_Helper_Data::getDBReadConnection();
+
+        $query = $readConnection
+            ->select()
+            ->from([
+                'amao' => ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE_OPTION,
+            ])
+            ->joinInner([
+                'eao' => 'eav_attribute_option',
+                ],
+                'eao.option_id=amao.option_id', 'eao.attribute_id'
+            )
+            ->where(
+                'eao.attribute_id IN (?)',
+                $productAttributesIds,
+                Zend_Db::PARAM_INT
+            )->query(Zend_Db::FETCH_ASSOC);
+
+        $mappedOptions = [];
+        while ($row = $query->fetch()) {
+            if (!isset($mappedOptions[$row['attribute_id']])) {
+                $mappedOptions[$row['attribute_id']] = [];
+            }
+            $mappedOptions[$row['attribute_id']][$row['option_id']] = $row['arena_option_value_name'];
+        }
+
+        return $mappedOptions;
+    }
+
+    /**
      * @param Mage_Catalog_Model_Product $product
      *
      * @return int[]

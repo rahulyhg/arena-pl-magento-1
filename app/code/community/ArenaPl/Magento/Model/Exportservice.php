@@ -327,7 +327,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             return;
         }
 
-        $mappedAttributeOptions = $this->getMappedAttributeOptions(
+        $mappedAttributeOptions = $this->mapper->getMappedAttributeOptions(
             array_keys($mappedProductAttributes)
         );
         if (empty($mappedAttributeOptions)) {
@@ -363,6 +363,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
 
         $prototypeTaxonId = current($productData['taxon_ids']);
         $prototypeCategory = null;
+
         /* @var $category Mage_Catalog_Model_Category */
         foreach (self::getProductCategoryCollection($product) as $category) {
             if ((int) $category->getArenaTaxonId() === $prototypeTaxonId) {
@@ -395,34 +396,5 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             $productData['master']['id'],
             $translatedOptionTypes
         );
-    }
-
-    protected function getMappedAttributeOptions(array $mappedProductAttributesIds)
-    {
-        $readConnection = ArenaPl_Magento_Helper_Data::getDBReadConnection();
-
-        $query = $readConnection
-            ->select()
-            ->from([
-                'amao' => ArenaPl_Magento_Model_Resource_Mapper::DB_TABLE_MAPPER_ATTRIBUTE_OPTION,
-            ])
-            ->joinInner([
-                'eao' => 'eav_attribute_option',
-            ], 'eao.option_id=amao.option_id', 'eao.attribute_id')
-            ->where(
-                'eao.attribute_id IN (?)',
-                $mappedProductAttributesIds,
-                Zend_Db::PARAM_INT
-            )->query(Zend_Db::FETCH_ASSOC);
-
-        $mappedOptions = [];
-        while ($row = $query->fetch()) {
-            if (!isset($mappedOptions[$row['attribute_id']])) {
-                $mappedOptions[$row['attribute_id']] = [];
-            }
-            $mappedOptions[$row['attribute_id']][$row['option_id']] = $row['arena_option_value_name'];
-        }
-
-        return $mappedOptions;
     }
 }

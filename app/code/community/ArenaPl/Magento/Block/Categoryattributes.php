@@ -211,4 +211,75 @@ class ArenaPl_Magento_Block_Categoryattributes extends Mage_Core_Block_Template
 
         return parent::_prepareLayout();
     }
+
+    /**
+     * @return array
+     */
+    public function getCurrentlyMappedAttributes()
+    {
+        return $this->mapper->getMappedCategoryAttributes($this->categoryToMap);
+    }
+
+    /**
+     * @return array
+     */
+    public function getCurrentlyMappedOptions()
+    {
+        return $this->mapper->getMappedCategoryAttributesOptions($this->categoryToMap);
+    }
+
+    /**
+     * @param array $currentlyMappedOptions
+     * @param array $prototypeAttributes
+     *
+     * @return array
+     */
+    public function sortCurrentlyMappedOptions(
+        array $currentlyMappedOptions,
+        array $prototypeAttributes
+    ) {
+        $commonPart = array_intersect_key($prototypeAttributes, $currentlyMappedOptions);
+        if ($commonPart) {
+            $returnArray = $commonPart;
+            $readConnection =  ArenaPl_Magento_Helper_Data::getDBReadConnection();
+            $attributeQuery = $readConnection
+                ->select()
+                ->from('eav_attribute_option', 'attribute_id')
+                ->where(
+                    'option_id = ?',
+                    $currentlyMappedOptions[key($returnArray)],
+                    Zend_Db::PARAM_INT
+                )
+                ->query(Zend_Db::FETCH_ASSOC)->fetch();
+
+            if ($attributeQuery) {
+                $attributeId = (int) $attributeQuery['attribute_id'];
+                $productsAttributes = $this->getCategoryProductsAttributes();
+                if (isset($productsAttributes[$attributeId])) {
+                    $attributeOptions = $productsAttributes[$attributeId]->getSource()->getAllOptions(false);
+                    $attributeValuesSorted = array_map(function (array $option) use ($currentlyMappedOptions) {
+                        return array_search($option['value'], $currentlyMappedOptions);
+                    }, $attributeOptions);
+                    $ordereredReturnArray = [];
+                    foreach ($attributeValuesSorted as $value) {
+                        if (isset($returnArray[$value])) {
+                            $ordereredReturnArray[$value] = $returnArray[$value];
+                            unset($returnArray[$value]);
+                        }
+                    }
+                    $returnArray = $ordereredReturnArray + $returnArray;
+                }
+            }
+
+            foreach (array_keys($prototypeAttributes) as $name) {
+                if (isset($returnArray[$name])) {
+                    unset($prototypeAttributes[$name]);
+                }
+            }
+
+            return array_merge($returnArray, $prototypeAttributes);
+        } else {
+            return $prototypeAttributes;
+        }
+    }
 }
