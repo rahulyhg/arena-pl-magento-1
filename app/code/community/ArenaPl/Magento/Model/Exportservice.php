@@ -185,10 +185,14 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      */
     protected function getProductImageUrls(Mage_Catalog_Model_Product $product)
     {
-        $imageUrls = [];
-
         /* @var $images Varien_Data_Collection */
         $images = $product->getMediaGalleryImages();
+
+        if (empty($images)) {
+            return [];
+        }
+
+        $imageUrls = [];
 
         /* @var $image Varien_Object */
         foreach ($images as $image) {
@@ -223,7 +227,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
     }
 
     /**
-     * @return string
+     * @return array
      */
     public function fullProductResync()
     {
@@ -242,7 +246,10 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             try {
                 $this->exportProduct($product);
             } catch (\Exception $e) {
-                $errors[$product->getEntityId()] = $e;
+                $errors[$product->getEntityId()] = [
+                    'product' => $product,
+                    'exception' => $e,
+                ];
             }
         }
 
@@ -254,7 +261,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             ]
         );
 
-        return empty($errors) ? 'ok' : sprintf('%d errors', count($errors));
+        return $errors;
     }
 
     /**
