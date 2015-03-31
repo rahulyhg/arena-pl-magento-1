@@ -73,6 +73,8 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         if ($this->isProductExported($product)) {
             $arenaProductId = $this->getArenaProductId($product);
 
+            $this->resource->ensureArenaProductVisible($arenaProductId);
+
             $this->updateProductStockQuantity($product, $arenaProductId);
             $this->exportImages($product, $arenaProductId);
 
@@ -280,8 +282,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
 
         $filteredProductAttributes = [];
 
-        $productAttributes = $product->getAttributes();
-        foreach ($productAttributes as $attribute) {
+        foreach ($product->getAttributes() as $attribute) {
             $attributeId = (int) $attribute->getAttributeId();
             if ($attributeId && isset($mappedProductAttributes[$attributeId])) {
                 $filteredProductAttributes[$attributeId] = $attribute;
@@ -289,7 +290,6 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         }
 
         $flippedMappedProductAttrs = array_flip($mappedProductAttributes);
-
         $arenaProductId = (int) $product->getArenaProductId();
 
         $productData = $this->resource->getArenaProductData($arenaProductId);
@@ -336,8 +336,9 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             return;
         }
 
-        $mappedAttributesIds = array_keys($mappedAttributeOptions);
         $mappedAttributes = [];
+        $mappedAttributesIds = array_keys($mappedAttributeOptions);
+
         foreach ($product->getAttributes() as $attribute) {
             $attributeId = (int) $attribute->getAttributeId();
             if (in_array($attributeId, $mappedAttributesIds)) {
@@ -346,6 +347,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         }
 
         $productOptionValuesNames = [];
+
         foreach ($mappedAttributeOptions as $attributeId => $mappedOptions) {
             if (isset($mappedAttributes[$attributeId])) {
                 $code = $mappedAttributes[$attributeId]->getAttributeCode();
@@ -378,10 +380,10 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             return;
         }
 
+        $translatedOptionTypes = [];
         $prototypeTaxonomyId = (int) $prototypeCategory->getArenaTaxonomyId();
         $prototype = $this->mapper->getTaxonPrototype($prototypeTaxonomyId, $prototypeTaxonId);
 
-        $translatedOptionTypes = [];
         foreach ($prototype['spree_option_types'] as $optionType) {
             foreach ($optionType['spree_option_values'] as $optionValue) {
                 if (in_array($optionValue['name'], $productOptionValuesNames)) {
@@ -389,6 +391,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
                 }
             }
         }
+
         if (empty($translatedOptionTypes)) {
             return;
         }
