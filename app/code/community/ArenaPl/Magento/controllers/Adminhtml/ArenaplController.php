@@ -30,14 +30,48 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
         $this->renderLayout();
     }
 
+    public function synchronizationAction()
+    {
+        $this->loadLayout();
+
+        $this->renderLayout();
+    }
+
     public function productFullResyncAction()
     {
-        /* @var $exporter ArenaPl_Magento_Model_ExportService */
-        $exporter = Mage::getSingleton('arenapl_magento/exportservice');
+        /* @var $session Mage_Core_Model_Session */
+        $session = Mage::getSingleton('core/session');
 
-        $result = $exporter->fullProductResync();
+        try {
+            /* @var $exporter ArenaPl_Magento_Model_ExportService */
+            $exporter = Mage::getSingleton('arenapl_magento/exportservice');
 
-        echo $result;
+            $syncErrors = $exporter->fullProductResync();
+            if ($syncErrors) {
+                $session->addWarning(sprintf(
+                    'Błędy synchronizacji produktów: %d', count($syncErrors)
+                ));
+
+                $parsedSyncErrors = [];
+                foreach ($syncErrors as $productEntityId => $errorData) {
+                    $parsedSyncErrors[$productEntityId] = [
+                        'product_name' => $errorData['product']->getName(),
+                        'error_message' => $errorData['exception']->getMessage(),
+                    ];
+                }
+
+                $session->setData(
+                    ArenaPl_Magento_Block_Synchronization::PRODUCT_SYNC_ERRORS_PARAM_KEY,
+                    $parsedSyncErrors
+                );
+            } else {
+                $session->addSuccess('Poprawnie wykonano synchronizację produktów');
+            }
+        } catch (\Exception $e) {
+            $session->addError($e->getMessage());
+        }
+
+        $this->_redirect('*/*/synchronization');
     }
 
     public function saveCategoryAttributesAction()

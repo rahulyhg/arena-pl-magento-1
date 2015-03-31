@@ -280,6 +280,12 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             return;
         }
 
+        $arenaProductId = (int) $product->getArenaProductId();
+        $productData = $this->resource->getArenaProductData($arenaProductId);
+        if (empty($productData['product_properties'])) {
+            return;
+        }
+
         $filteredProductAttributes = [];
 
         foreach ($product->getAttributes() as $attribute) {
@@ -290,9 +296,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         }
 
         $flippedMappedProductAttrs = array_flip($mappedProductAttributes);
-        $arenaProductId = (int) $product->getArenaProductId();
 
-        $productData = $this->resource->getArenaProductData($arenaProductId);
         foreach ($productData['product_properties'] as $data) {
             if (isset($flippedMappedProductAttrs[$data['property_name']])
                 && isset($filteredProductAttributes[$flippedMappedProductAttrs[$data['property_name']]])
@@ -324,6 +328,12 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      */
     protected function exportProductOptionValues(Mage_Catalog_Model_Product $product)
     {
+        $arenaProductId = (int) $product->getArenaProductId();
+        $productData = $this->resource->getArenaProductData($arenaProductId);
+        if (!is_array($productData)) {
+            return;
+        }
+
         $mappedProductAttributes = $this->mapper->getMappedProductAttributes($product);
         if (empty($mappedProductAttributes)) {
             return;
@@ -358,13 +368,6 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             }
         }
 
-        $arenaProductId = (int) $product->getArenaProductId();
-
-        $productData = $this->resource->getArenaProductData($arenaProductId);
-        if (!is_array($productData)) {
-            return;
-        }
-
         $prototypeTaxonId = current($productData['taxon_ids']);
         $prototypeCategory = null;
 
@@ -383,6 +386,10 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         $translatedOptionTypes = [];
         $prototypeTaxonomyId = (int) $prototypeCategory->getArenaTaxonomyId();
         $prototype = $this->mapper->getTaxonPrototype($prototypeTaxonomyId, $prototypeTaxonId);
+
+        if (empty($prototype['spree_option_types'])) {
+            return;
+        }
 
         foreach ($prototype['spree_option_types'] as $optionType) {
             foreach ($optionType['spree_option_values'] as $optionValue) {
