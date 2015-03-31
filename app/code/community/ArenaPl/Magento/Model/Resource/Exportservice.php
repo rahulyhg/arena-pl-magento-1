@@ -152,12 +152,14 @@ class ArenaPl_Magento_Model_Resource_Exportservice
             return;
         }
 
-        $apiCall = $this->client->deleteProductImage()
+        $apiCall = $this->client
+            ->deleteProductImage()
             ->setProductId($arenaProductId);
 
         foreach ($productData['master']['images'] as $image) {
             try {
-                $apiCall->setProductImageId((int) $image['id'])
+                $apiCall
+                    ->setProductImageId((int) $image['id'])
                     ->getResult();
             } catch (Exception $e) {
             }
@@ -186,12 +188,14 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      */
     public function addProductImages($arenaProductId, array $imageUrls)
     {
-        $apiCall = $this->client->createProductImage()
+        $apiCall = $this->client
+            ->createProductImage()
             ->setProductId($arenaProductId);
 
         foreach ($imageUrls as $url) {
             try {
-                $apiCall->setProductImageUrl($url)
+                $apiCall
+                    ->setProductImageUrl($url)
                     ->getResult();
             } catch (Exception $e) {
             }
