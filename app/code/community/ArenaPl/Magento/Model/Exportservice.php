@@ -37,6 +37,9 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         } else {
             $this->exportProductEmptyStock($product);
         }
+
+        $this->exportProductProperties($product);
+        $this->exportProductOptionValues($product);
     }
 
     /**
@@ -261,5 +264,137 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         $collection->addAttributeToSelect('*');
 
         return $collection;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     */
+    protected function exportProductProperties(Mage_Catalog_Model_Product $product)
+    {
+        $mappedProductAttributes = $this->mapper->getMappedProductAttributes($product);
+        if (empty($mappedProductAttributes)) {
+            return;
+        }
+
+        $filteredProductAttributes = [];
+
+        $productAttributes = $product->getAttributes();
+        foreach ($productAttributes as $attribute) {
+            $attributeId = (int) $attribute->getAttributeId();
+            if ($attributeId && isset($mappedProductAttributes[$attributeId])) {
+                $filteredProductAttributes[$attributeId] = $attribute;
+            }
+        }
+
+        $flippedMappedProductAttrs = array_flip($mappedProductAttributes);
+
+        $arenaProductId = (int) $product->getArenaProductId();
+
+        $productData = $this->resource->getArenaProductData($arenaProductId);
+        foreach ($productData['product_properties'] as $data) {
+            if (isset($flippedMappedProductAttrs[$data['property_name']])
+                && isset($filteredProductAttributes[$flippedMappedProductAttrs[$data['property_name']]])
+            ) {
+                /* @var $attribute Mage_Catalog_Model_Resource_Eav_Attribute */
+                $attribute = $filteredProductAttributes[$flippedMappedProductAttrs[$data['property_name']]];
+
+                $productValue = $product->getData($attribute->getAttributeCode());
+
+                $attributeOptions = $attribute->usesSource() ? $attribute->getSource()->getAllOptions() : [];
+                foreach ($attributeOptions as $labelValue) {
+                    if ($labelValue['value'] === $productValue) {
+                        $productValue = $labelValue['label'];
+                        break;
+                    }
+                }
+
+                $this->resource->saveArenaProductProperty(
+                    $arenaProductId,
+                    $data['id'],
+                    $productValue
+                );
+            }
+        }
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     */
+    protected function exportProductOptionValues(Mage_Catalog_Model_Product $product)
+    {
+        $mappedProductAttributes = $this->mapper->getMappedProductAttributes($product);
+        if (empty($mappedProductAttributes)) {
+            return;
+        }
+
+        $mappedAttributeOptions = $this->mapper->getMappedAttributeOptions(
+            array_keys($mappedProductAttributes)
+        );
+        if (empty($mappedAttributeOptions)) {
+            return;
+        }
+
+        $mappedAttributesIds = array_keys($mappedAttributeOptions);
+        $mappedAttributes = [];
+        foreach ($product->getAttributes() as $attribute) {
+            $attributeId = (int) $attribute->getAttributeId();
+            if (in_array($attributeId, $mappedAttributesIds)) {
+                $mappedAttributes[$attributeId] = $attribute;
+            }
+        }
+
+        $productOptionValuesNames = [];
+        foreach ($mappedAttributeOptions as $attributeId => $mappedOptions) {
+            if (isset($mappedAttributes[$attributeId])) {
+                $code = $mappedAttributes[$attributeId]->getAttributeCode();
+                $attributeValue = $product->getData($code);
+                if (isset($mappedOptions[$attributeValue])) {
+                    $productOptionValuesNames[] = $mappedOptions[$attributeValue];
+                }
+            }
+        }
+
+        $arenaProductId = (int) $product->getArenaProductId();
+
+        $productData = $this->resource->getArenaProductData($arenaProductId);
+        if (!is_array($productData)) {
+            return;
+        }
+
+        $prototypeTaxonId = current($productData['taxon_ids']);
+        $prototypeCategory = null;
+
+        /* @var $category Mage_Catalog_Model_Category */
+        foreach (self::getProductCategoryCollection($product) as $category) {
+            if ((int) $category->getArenaTaxonId() === $prototypeTaxonId) {
+                $prototypeCategory = $category;
+                break;
+            }
+        }
+
+        if (!$prototypeCategory) {
+            return;
+        }
+
+        $prototypeTaxonomyId = (int) $prototypeCategory->getArenaTaxonomyId();
+        $prototype = $this->mapper->getTaxonPrototype($prototypeTaxonomyId, $prototypeTaxonId);
+
+        $translatedOptionTypes = [];
+        foreach ($prototype['spree_option_types'] as $optionType) {
+            foreach ($optionType['spree_option_values'] as $optionValue) {
+                if (in_array($optionValue['name'], $productOptionValuesNames)) {
+                    $translatedOptionTypes[] = $optionValue['id'];
+                }
+            }
+        }
+        if (empty($translatedOptionTypes)) {
+            return;
+        }
+
+        $this->resource->saveArenaProductVariantOptionValues(
+            $arenaProductId,
+            $productData['master']['id'],
+            $translatedOptionTypes
+        );
     }
 }

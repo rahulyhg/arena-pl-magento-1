@@ -22,6 +22,47 @@ class ArenaPl_Magento_Helper_Data extends Mage_Core_Helper_Abstract
     }
 
     /**
+     * @return Varien_Db_Adapter_Interface
+     */
+    public static function getDBReadConnection()
+    {
+        return Mage::getSingleton('core/resource')->getConnection('core_read');
+    }
+
+    /**
+     * @return Varien_Db_Adapter_Interface
+     */
+    public static function getDBWriteConnection()
+    {
+        return Mage::getSingleton('core/resource')->getConnection('core_write');
+    }
+
+    /**
+     * @param int $categoryId
+     *
+     * @return Mage_Catalog_Model_Category|null
+     */
+    public static function getCategory($categoryId)
+    {
+        $categoryId = (int) $categoryId;
+        if (empty($categoryId)) {
+            return;
+        }
+
+        /* @var $collection Mage_Catalog_Model_Resource_Category_Collection */
+        $collection = Mage::getModel('catalog/category')->getCollection();
+        $collection->addAttributeToFilter('entity_id', ['eq' => $categoryId]);
+        $collection->addAttributeToSelect('*');
+
+        $collectionArray = iterator_to_array($collection);
+        if (empty($collectionArray)) {
+            return;
+        }
+
+        return current($collectionArray);
+    }
+
+    /**
      * @return Client
      */
     public function getClient()
@@ -50,7 +91,7 @@ class ArenaPl_Magento_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * @param string   $key
-     * @param callable $saveFunction
+     * @param callable $saveFunction function call result to cache
      * @param array    $tags
      * @param int      $timeout      in secs
      *
@@ -64,6 +105,10 @@ class ArenaPl_Magento_Helper_Data extends Mage_Core_Helper_Abstract
         }
 
         $funcValue = $saveFunction();
+
+        if (empty($funcValue)) {
+            return $funcValue;
+        }
 
         $tags[] = self::CACHE_DEFAULT_TAG;
         $this->cache->save(

@@ -22,7 +22,7 @@
     <tbody>
         <?php
         foreach ($this->getAllCategories() as $category):
-            $currentCategoryEntityId = $category->getEntityId();
+            $currentCategoryEntityId = (int) $category->getEntityId();
             $this->setCategory($category);
             ?>
             <tr id="category-<?php echo $currentCategoryEntityId; ?>">
@@ -85,6 +85,7 @@
                             ?>
                         </select>
                     </div>
+                    <?php echo $this->getSetAttributesButtonHtml($currentCategoryEntityId, $mappedTaxonomyId, $mappedTaxonId); ?>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -98,6 +99,7 @@
 
     (function ($) {
         var EVENT_SELECT_CHANGED = 'arenapl_select_changed';
+        var EVENT_CATEGORIES_DIRTY = 'arenapl_categories_dirty';
 
         window.Element = window.Element || {
             show: function () {
@@ -106,8 +108,19 @@
             }
         };
 
+        var manageAttributesButtons = function (lock) {
+            var $attributeButtons = $("#arenapl-category-mapper button[class^='set-attributes-'], #arenapl-category-mapper button[class*=' set-attributes-']");
+
+            if (lock) {
+                $attributeButtons.hide();
+            }
+            else {
+                $attributeButtons.show();
+            }
+        };
+
         var loadTaxons = function () {
-            $this = $(this);
+            var $this = $(this);
             var selectedOption = $this.val();
             var $taxonsDiv = $this.closest('td').find('div.arenapl_taxons');
 
@@ -130,6 +143,34 @@
                     });
         };
 
+        var loadAttributesNum = function () {
+            var $this = $(this);
+            var selectedOption = $this.val();
+
+            $.getJSON('<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/ajax'); ?>?task=load_taxon_attributes_num&selected_taxonomy=' + selectedOption)
+                    .done(function (result) {
+                        if (result.status === 'error') {
+                            throw new Error(result.message);
+                        }
+
+                        var $attributesButton = $this.closest('td').find("button[class^='set-attributes-'],button[class*=' set-attributes-']");
+                        var $attributesSpan = $attributesButton.find("span:contains('Atrybuty')");
+
+                        $attributesSpan.each(function () {
+                            var $this = $(this);
+                            if ($this.children().length) {
+                                return;
+                            }
+
+                            $this.text('Atrybuty (' + result.attributes_num + ')');
+                        });
+
+                    })
+                    .fail(function (result) {
+                        throw new Error('Failed fetching data');
+                    });
+        };
+
         $(function () {
             $('#arenapl-category-mapper select').select2();
 
@@ -137,7 +178,18 @@
                     .on('change', 'select[name="arenapl_main_taxonomies"]', loadTaxons)
                     .on(EVENT_SELECT_CHANGED, function (event) {
                         var $target = $(event.target);
+
                         $target.select2();
+                        $target.trigger(EVENT_CATEGORIES_DIRTY);
+                    })
+                    .on(EVENT_CATEGORIES_DIRTY, function (event) {
+                        manageAttributesButtons(true);
+                    })
+                    .on('change', 'select[name="arenapl_taxons[]"]', loadAttributesNum)
+                    .on('change', 'select[name="arenapl_taxons[]"]', function (event) {
+                        var $target = $(event.target);
+
+                        $target.trigger(EVENT_CATEGORIES_DIRTY);
                     });
 
             window.arenaplSaveCategories = function () {
@@ -152,6 +204,8 @@
                             if (jsonResult.status === 'error') {
                                 throw new Error(jsonResult.message);
                             }
+
+                            manageAttributesButtons(false);
                         })
                         .fail(function (result) {
                             throw new Error('Failed saving data');
@@ -159,6 +213,10 @@
                         .always(function () {
                             window.Element.hide('loading-mask');
                         });
+            };
+
+            window.arenaplSetCategoryAttributes = function (categoryId) {
+                window.location = '<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/categoryattributes'); ?>?category_id=' + categoryId;
             };
         });
     }(jQuery));

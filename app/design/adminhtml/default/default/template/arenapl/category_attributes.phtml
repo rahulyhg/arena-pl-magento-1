@@ -1,0 +1,206 @@
+<?php /* @var $this ArenaPl_Magento_Block_Categoryattributes */ ?>
+<div class="content-header">
+    <table cellspacing="0">
+        <tr>
+            <td style="width:50%;">
+                <h3>Kategorie</h3>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<script type="text/javascript">
+    window.arenapl_options = {};
+</script>
+
+<?php echo $this->getSaveButtonHtml(); ?>
+<?php echo $this->getChildHtml('configchecker'); ?>
+
+<?php if (!$this->isCategoryFound()): ?>
+    Nie znaleziono kategorii
+<?php endif; ?>
+
+<?php if (!$this->isCategoryMapped()): ?>
+    Kategoria niezamapowana w Arena.pl
+<?php endif; ?>
+
+<?php
+if ($this->hasMappedTaxon()):
+    $currentlyMappedOptions = array_flip($this->getCurrentlyMappedOptions());
+    $taxonPrototypeAttributes = $this->getPrototypeAttributes();
+    foreach ($taxonPrototypeAttributes as $prototypeAttributeName => $prototypeAttributeData) {
+        if ($prototypeAttributeData['type'] == ArenaPl_Magento_Block_Categoryattributes::ATTRIBUTE_TYPE_OPTION_VALUE) {
+            ?>
+            <script type="text/javascript">
+                window.arenapl_options["<?php echo $prototypeAttributeName; ?>"] = {};
+            <?php
+            $sortedPrototype = $this->sortCurrentlyMappedOptions($currentlyMappedOptions, $prototypeAttributeData['options']);
+            foreach ($sortedPrototype as $optionName => $optionPresentation) {
+                ?>
+                    window.arenapl_options["<?php echo $prototypeAttributeName; ?>"]["<?php echo $optionName; ?>"] = <?php echo json_encode($optionPresentation); ?>;
+                <?php
+            }
+            ?>
+            </script>
+            <?php
+        }
+    }
+    ?>
+    <table id="arenapl-attributes-mapper">
+        <thead>
+            <tr>
+                <th>Atrybut produktu </th>
+                <th>Atrybut Arena.pl </th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+            $currentlyMappedAttributes = $this->getCurrentlyMappedAttributes();
+
+            /* @var $attribute Mage_Catalog_Model_Resource_Eav_Attribute */
+            foreach ($this->getCategoryProductsAttributes() as $attribute) {
+                $attributeId = (int) $attribute->getAttributeId();
+                $attributeOptions = $attribute->usesSource() ? $attribute->getSource()->getAllOptions() : [];
+                $currentlyMappedTo = isset($currentlyMappedAttributes[$attributeId]) ? $currentlyMappedAttributes[$attributeId] : null;
+
+                $attributesToDisplay = [];
+                foreach ($attributeOptions as $option) {
+                    if ($option['label'] === '' && $option['value'] === '') {
+                        continue;
+                    }
+
+                    $attributesToDisplay[$option['value']] = $option['label'];
+                }
+
+                echo "<tr data-attribute-id=\"$attributeId\">";
+
+                if (empty($attributesToDisplay)) {
+                    echo "<td class=\"magento_part\">{$attribute->getStoreLabel()}</td>";
+                } else {
+                    echo "<td class=\"magento_part\">{$attribute->getStoreLabel()}";
+                    echo '<div class="magento_attributes">';
+                    foreach ($attributesToDisplay as $name => $label) {
+                        echo "<p magento_option_name=\"$name\">$label</p>";
+                    }
+                    echo '</div>';
+                    echo '</td>';
+                }
+
+                echo '<td class="arena_part">';
+                echo '<select name="arenapl_attributes">';
+                echo '<option value="">-- wybierz --</option>';
+                foreach ($taxonPrototypeAttributes as $prototypeAttributeName => $prototypeAttributeData) {
+                    $selected = $prototypeAttributeName === $currentlyMappedTo ? 'selected' : '';
+                    echo "<option $selected data-attribute-type=\"{$prototypeAttributeData['type']}\" value=\"$prototypeAttributeName\">{$prototypeAttributeData['presentation']}</option>";
+                }
+                echo '</select>';
+
+                echo '<div class="attribute_options_area"></div>';
+
+                echo '</td>';
+                echo '</tr>';
+            }
+            ?>
+        </tbody>
+    </table>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script>
+    <script type="text/javascript">
+        jQuery.noConflict();
+
+        (function ($) {
+            window.Element = window.Element || {
+                show: function () {
+                },
+                hide: function () {
+                }
+            };
+
+            var displayOptions = function () {
+                var $this = $(this);
+                var selectedAttribute = $this.val();
+                var $closestTd = $this.closest('td');
+                var $attributeOptionsArea = $closestTd.find('.attribute_options_area');
+
+                $attributeOptionsArea.empty();
+                if (window.arenapl_options[selectedAttribute] != null) {
+                    var optionsAreaContent = '';
+
+                    for (var key in window.arenapl_options[selectedAttribute]) {
+                        var value = window.arenapl_options[selectedAttribute][key];
+                        optionsAreaContent += '<p arena_option_name="' + key + '">' + value + ' / ' + key + '</p>';
+                    }
+                    $attributeOptionsArea.html(optionsAreaContent);
+
+                    $attributeOptionsArea.sortable();
+                    $attributeOptionsArea.disableSelection();
+                }
+
+
+            };
+
+            $('#arenapl-attributes-mapper').on('change', 'select[name="arenapl_attributes"]', displayOptions);
+
+            $('#arenapl-attributes-mapper select[name="arenapl_attributes"]').each(function () {
+                $this = $(this);
+
+                if ($this.val() !== '') {
+                    $this.trigger('change');
+                }
+            });
+
+            window.arenaplSaveCategoryAttributes = function () {
+                var $table = $('#arenapl-attributes-mapper');
+                var attributesMapping = {};
+                var optionsMapping = {};
+
+                $table.find('tbody tr').each(function () {
+                    var $this = $(this);
+
+                    attributesMapping[$this.attr('data-attribute-id')] = $this.find('select[name="arenapl_attributes"]').val();
+
+                    $this.find('td.magento_part .magento_attributes p').each(function (index) {
+                        index++;
+                        var $mapped = $this.find('td.arena_part .attribute_options_area :nth-child(' + index + ')');
+                        if ($mapped.length) {
+                            var $innerThis = $(this);
+
+                            optionsMapping[$innerThis.attr('magento_option_name')] = $mapped.attr('arena_option_name');
+                        }
+                    });
+                });
+
+                var dataToSave = $.param({'attributes_mapping': attributesMapping, 'options_mapping': optionsMapping});
+                dataToSave += '&form_key=<?php echo Mage::getSingleton('core/session')->getFormKey(); ?>';
+                dataToSave += '&category_id=<?php echo $this->getMappedCategory()->getEntityId(); ?>';
+
+                window.Element.show('loading-mask');
+
+                $.post('<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/savecategoryattributes'); ?>?isAjax=true', dataToSave)
+                        .done(function (result) {
+                            console.log(result);
+                        })
+                        .fail(function (result) {
+                            throw new Error('Failed saving data');
+                        })
+                        .always(function () {
+                            window.Element.hide('loading-mask');
+                        });
+            };
+        }(jQuery));
+    </script>
+<?php else:
+    ?>
+    Nieprawidłowe
+    dane mapowania
+<?php endif; ?>
+<style>
+    .pull-right {
+        float: right;
+    }
+</style>
+
+
+
+
