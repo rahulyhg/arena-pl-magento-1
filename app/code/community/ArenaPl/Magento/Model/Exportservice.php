@@ -74,6 +74,8 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             $arenaProductId = $this->getArenaProductId($product);
 
             $this->updateProductStockQuantity($product, $arenaProductId);
+            $this->exportImages($product, $arenaProductId);
+
             $this->resource->archiveProduct($arenaProductId);
         }
     }
