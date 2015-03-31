@@ -1,0 +1,40 @@
+<?php
+/* @var $this ArenaPl_Magento_Block_Synchronization */
+?>
+<div class="content-header">
+    <table cellspacing="0">
+        <tr>
+            <td style="width:50%;">
+                <h3>Synchronizacja</h3>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<?php echo $this->getChildHtml('configchecker'); ?>
+
+<?php if ($this->hasProductSyncErrors()): ?>
+    <div class="messages">
+        <h3>Błędy synchronizacji</h3>
+        <table class="warning-msg">
+            <thead>
+                <tr>
+                    <th>Produkt</th>
+                    <th>Błąd</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                foreach ($this->getProductSyncErrors() as $productId => $errorData):
+                    echo '<tr>';
+                    echo "<td>{$errorData['product_name']}</td>";
+                    echo "<td>{$errorData['error_message']}</td>";
+                    echo '</tr>';
+                endforeach;
+                ?>
+            </tbody>
+        </table>
+    </div>
+<?php endif; ?>
+
+<a href="<?php echo Mage::helper('adminhtml')->getUrl('/arenapl/productfullresync'); ?>">Wykonaj całkowitą synchronizację produktów</a>
