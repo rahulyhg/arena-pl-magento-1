@@ -104,9 +104,10 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
             'taxon_id' => $rawData['id'],
             'taxonomy_id' => $rawData['taxonomy_id'],
             'name' => $rawData['name'],
+            'permalink' => $rawData['permalink'],
             'parent_id' => $rawData['parent_id'],
             'has_children' => !empty($rawData['taxons']),
-            'children' => $rawData['taxons'],
+            'children' => empty($rawData['taxons']) ? [] : $rawData['taxons'],
         ];
     }
 
@@ -137,16 +138,40 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
      * @param array $taxonData
      *
      * @return array
+     *
+     * @throws \RuntimeException When parent taxon data cannot be fetched
      */
     public function getBaseTaxon(array $taxonData)
     {
+        $filteredBaseTaxons = [];
+        foreach ($this->getBaseTaxons() as $baseTaxon) {
+            if ($taxonData['taxonomy_id'] == $baseTaxon['taxonomy_id']) {
+                $taxonKey = sprintf('%d/%d', $baseTaxon['taxonomy_id'], $baseTaxon['taxon_id']);
+                $filteredBaseTaxons[$taxonKey] = $baseTaxon;
+            }
+        }
+
+        $taxonKey = sprintf('%d/%d', $taxonData['taxonomy_id'], $taxonData['taxon_id']);
+        if (isset($filteredBaseTaxons[$taxonKey])) {
+            return $filteredBaseTaxons[$taxonKey];
+        }
+
         $parentId = $taxonData['parent_id'];
         while (!empty($parentId)) {
-            $data = $this->makeApiTaxonCall($taxonData['taxonomy_id'], $parentId);
-            if (!is_array($taxonData)) {
-                break;
+            $taxonKey = sprintf('%d/%d', $taxonData['taxonomy_id'], $parentId);
+            if (isset($filteredBaseTaxons[$taxonKey])) {
+                return $filteredBaseTaxons[$taxonKey];
             }
-            $taxonData = $this->processRawTaxonData($data);
+
+            $parentTaxonData = $this->makeApiTaxonCall($taxonData['taxonomy_id'], $parentId);
+            if (!is_array($parentTaxonData)) {
+                throw new \RuntimeException(sprintf(
+                    'Cant fetch taxon data "%d/%d"',
+                    $taxonData['taxonomy_id'],
+                    $parentId
+                ));
+            }
+            $taxonData = $this->processRawTaxonData($parentTaxonData);
             $parentId = $taxonData['parent_id'];
         }
 
@@ -207,20 +232,61 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
         return $this->helper->cacheExpensiveCall(
             'arenapl_api_base_taxons',
             function () {
-                $returnData = [];
-
-                $taxonomiesData = $this->resource->getTaxonomies();
-                if (is_array($taxonomiesData)) {
-                    foreach ($taxonomiesData as $row) {
-                        $returnData[] = $this->processRawTaxonData($row['root']);
-                    }
-                }
-
-                return $returnData;
+                return $this->getBaseTaxonsInnerFunction();
             },
             [self::CACHE_KEY],
             self::CACHE_TIMEOUT
         );
+    }
+
+    /**
+     * @return array
+     */
+    protected function getBaseTaxonsInnerFunction()
+    {
+        $taxonomiesData = $this->resource->getTaxonomies();
+        if (!is_array($taxonomiesData)) {
+            return [];
+        }
+
+        $taxonomiesDataCount = count($taxonomiesData);
+
+        if ($taxonomiesDataCount == 0) {
+            return [];
+        } elseif ($taxonomiesDataCount == 1) {
+            $currentTaxonomies = current($taxonomiesData);
+
+            return $this->processBaseTaxons($currentTaxonomies['root']['taxons']);
+        } else {
+            foreach ($taxonomiesData as $row) {
+                if (!empty($row['default']) && $row['default']) {
+                    return $this->processBaseTaxons($row['root']['taxons']);
+                }
+            }
+
+            $returnData = [];
+            foreach ($taxonomiesData as $row) {
+                $returnData[] = $this->processRawTaxonData($row['root']);
+            }
+
+            return $returnData;
+        }
+    }
+
+    /**
+     * @param array $taxons
+     *
+     * @return array
+     */
+    protected function processBaseTaxons(array $taxons)
+    {
+        $returnData = [];
+
+        foreach ($taxons as $row) {
+            $returnData[] = $this->processRawTaxonData($row);
+        }
+
+        return $returnData;
     }
 
     /**
@@ -270,22 +336,30 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
 
         /* @var $collection Mage_Catalog_Model_Resource_Category_Collection */
         $collection = $category->getCollection();
-        $collection->addAttributeToFilter('entity_id', [
-            'in' => array_keys($taxonsData),
-        ]);
 
         /* @var $category Mage_Catalog_Model_Category */
         foreach ($collection as $category) {
             $entityId = $category->getEntityId();
 
-            $category->setData(
-                self::ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID,
-                (int) $taxonsData[$entityId]['taxonomy_id']
-            );
-            $category->setData(
-                self::ATTRIBUTE_CATEGORY_ARENA_TAXON_ID,
-                (int) $taxonsData[$entityId]['taxon_id']
-            );
+            if (empty($taxonsData[$entityId])) {
+                $category->setData(
+                    self::ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID,
+                    null
+                );
+                $category->setData(
+                    self::ATTRIBUTE_CATEGORY_ARENA_TAXON_ID,
+                    null
+                );
+            } else {
+                $category->setData(
+                    self::ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID,
+                    (int) $taxonsData[$entityId]['taxonomy_id']
+                );
+                $category->setData(
+                    self::ATTRIBUTE_CATEGORY_ARENA_TAXON_ID,
+                    (int) $taxonsData[$entityId]['taxon_id']
+                );
+            }
 
             $category->save();
         }

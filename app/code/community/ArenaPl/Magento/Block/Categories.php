@@ -72,6 +72,7 @@ class ArenaPl_Magento_Block_Categories extends Mage_Core_Block_Template
     public function displayMagentoCategoryString()
     {
         $elements = [];
+
         foreach ($this->category->getParentIds() as $id) {
             $elements[] = Mage::getModel('catalog/category')->load($id)->getName();
         }
@@ -126,18 +127,27 @@ class ArenaPl_Magento_Block_Categories extends Mage_Core_Block_Template
         return $this->helper->cacheExpensiveCall(
             $cacheKey,
             function () use ($taxonData) {
-                $baseTaxon = $this->mapper->getBaseTaxon($taxonData);
-                $taxonomyTree = $this->mapper->getTaxonTree($baseTaxon);
-
-                foreach ($taxonomyTree as &$taxon) {
-                    $taxon['name'] = $taxon['pretty_name'];
-                }
-
-                return $taxonomyTree;
+                return $this->getTaxonomiesSelectInnerFunction($taxonData);
             },
             [self::CACHE_KEY],
             self::CACHE_TIMEOUT
         );
+    }
+
+    /**
+     * @param array $taxonData
+     *
+     * @return array
+     */
+    protected function getTaxonomiesSelectInnerFunction(array $taxonData)
+    {
+        $taxonomyTree = $this->mapper->getTaxonTree($taxonData);
+
+        foreach ($taxonomyTree as &$taxon) {
+            $taxon['name'] = $taxon['pretty_name'];
+        }
+
+        return $taxonomyTree;
     }
 
     /**
