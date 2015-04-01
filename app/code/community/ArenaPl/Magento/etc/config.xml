@@ -43,7 +43,7 @@
                     </arenapl_magento_observer_autoload>
                 </observers>
             </controller_front_init_before>
-            <catalog_category_save_commit_after>
+            <catalog_category_save_after>
                 <observers>
                     <arenapl_magento_observer_category>
                         <type>singleton</type>
@@ -51,8 +51,8 @@
                         <method>afterCategorySave</method>
                     </arenapl_magento_observer_category>
                 </observers>
-            </catalog_category_save_commit_after>
-            <catalog_product_save_commit_after>
+            </catalog_category_save_after>
+            <catalog_product_save_after>
                 <observers>
                     <arenapl_magento_observer_category>
                         <type>singleton</type>
@@ -60,7 +60,7 @@
                         <method>afterProductSave</method>
                     </arenapl_magento_observer_category>
                 </observers>
-            </catalog_product_save_commit_after>
+            </catalog_product_save_after>
         </events>
     </global>
     <admin>

@@ -192,14 +192,49 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             return [];
         }
 
+        /* @var $mediaAttributes Mage_Catalog_Model_Resource_Eav_Attribute[] */
+        $mediaAttributes = $product->getMediaAttributes();
+
+        /* @var $mediaConfig Mage_Catalog_Model_Product_Media_Config */
+        $mediaConfig = $product->getMediaConfig();
+
         $imageUrls = [];
+        $avoidWhenIterating = [];
+
+        // base image always goes first
+        $baseImage = isset($mediaAttributes['image']) ? $product->getData('image') : null;
+        if ($baseImage) {
+            $imageUrls[] = $mediaConfig->getMediaUrl($baseImage);
+            $avoidWhenIterating[] = current($imageUrls);
+        }
+
+        $smallImage = isset($mediaAttributes['small_image']) ? $product->getData('small_image') : null;
+        if ($smallImage) {
+            $smallImage = $mediaConfig->getMediaUrl($smallImage);
+            $avoidWhenIterating[] = $smallImage;
+        }
+
+        $thumbnail = isset($mediaAttributes['thumbnail']) ? $product->getData('thumbnail') : null;
+        if ($thumbnail) {
+            $thumbnail = $mediaConfig->getMediaUrl($thumbnail);
+            $avoidWhenIterating[] = $thumbnail;
+        }
 
         /* @var $image Varien_Object */
         foreach ($images as $image) {
             $imageUrl = $image->getData('url');
-            if (!empty($imageUrl)) {
-                $imageUrls[] = (string) $imageUrl;
+            if (empty($imageUrl) || in_array($imageUrl, $avoidWhenIterating)) {
+                continue;
             }
+            $imageUrls[] = $imageUrl;
+        }
+
+        if ($smallImage) {
+            $imageUrls[] = $smallImage;
+        }
+
+        if ($thumbnail && empty($imageUrls)) {
+            $imageUrls[] = $thumbnail;
         }
 
         return $imageUrls;
