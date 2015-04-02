@@ -109,8 +109,8 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
     public static function getProductCategoryCollection(Mage_Catalog_Model_Product $product)
     {
         $collection = $product->getCategoryCollection();
-        $collection->addAttributeToSelect(ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID);
-        $collection->addAttributeToSelect(ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATEGORY_ARENA_TAXON_ID);
+        $collection->addAttributeToSelect(ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_PERMALINK);
+        $collection->addAttributeToSelect(ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATEGORY_ARENA_TAXON_PERMALINK);
 
         return $collection;
     }
@@ -237,7 +237,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             $imageUrls[] = $thumbnail;
         }
 
-        return $imageUrls;
+        return array_unique($imageUrls);
     }
 
     /**

@@ -96,6 +96,12 @@ class ArenaPl_Magento_Adminhtml_ArenaplController extends Mage_Adminhtml_Control
     {
         $data = $this->getRequest()->getPost();
 
+        if (empty($data['arenapl_taxons'])) {
+            echo $this->returnOkAjax();
+
+            return;
+        }
+
         $taxonsData = [];
         foreach ($data['arenapl_taxons'] as $selectValue) {
             $exploded = explode('-', $selectValue);
