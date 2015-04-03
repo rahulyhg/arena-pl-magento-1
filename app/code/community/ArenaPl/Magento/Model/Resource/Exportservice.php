@@ -15,10 +15,20 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      */
     protected $mapper;
 
+    /**
+     * @var Mage_Catalog_Model_Resource_Product_Relation
+     */
+    protected $productsRelation;
+
     public function __construct()
     {
         $this->mapper = Mage::getSingleton('arenapl_magento/mapper');
         $this->client = Mage::helper('arenapl_magento')->getClient();
+        $this->productsRelation = Mage::getResourceSingleton('catalog/product_relation');
+    }
+
+    protected function _construct()
+    {
     }
 
     /**
@@ -70,6 +80,26 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         } catch (Exception $e) {
             return;
         }
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return bool
+     */
+    protected function isProductTypeSimple(Mage_Catalog_Model_Product $product)
+    {
+        return $product->getTypeId() === Mage_Catalog_Model_Product_Type::TYPE_SIMPLE;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return bool
+     */
+    protected function isProductTypeConfigurable(Mage_Catalog_Model_Product $product)
+    {
+        return $product->getTypeId() === Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE;
     }
 
     /**
@@ -347,5 +377,20 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * @param int $childId
+     *
+     * @return array
+     */
+    public function getRelationsByChild($childId)
+    {
+        $read = ArenaPl_Magento_Helper_Data::getDBReadConnection();
+        $select = $read->select()
+            ->from($this->productsRelation->getMainTable(), 'parent_id')
+            ->where('child_id=?', $childId);
+
+        return $read->fetchCol($select);
     }
 }

@@ -2,6 +2,9 @@
 
 class ArenaPl_Magento_Model_Taxonresolver
 {
+    const CACHE_KEY = 'arenapl_taxon_resolver';
+    const CACHE_TIMEOUT = 10000;
+
     /**
      * @var ArenaPl_Magento_Helper_Data
      */
@@ -33,6 +36,23 @@ class ArenaPl_Magento_Model_Taxonresolver
      * @return array|null
      */
     public function getTaxonDataFromPermalink($permalink)
+    {
+        return $this->helper->cacheExpensiveCall(
+            "arenapl_taxonresolver_$permalink",
+            function () use ($permalink) {
+                return $this->getTaxonDataFromPermalinkInnerFunction($permalink);
+            },
+            [self::CACHE_KEY],
+            self::CACHE_TIMEOUT
+        );
+    }
+
+    /**
+     * @param string $permalink
+     *
+     * @return array|null
+     */
+    protected function getTaxonDataFromPermalinkInnerFunction($permalink)
     {
         if (empty($permalink)) {
             return;
@@ -69,10 +89,10 @@ class ArenaPl_Magento_Model_Taxonresolver
             return;
         }
 
-        // @todo fix hot place
         foreach ($taxonTree as $row) {
-            $taxonData = $this->mapper->getTaxonData($row['taxonomy_id'], $row['taxon_id']);
-            if ($taxonData['permalink'] === $permalink) {
+            if ($row['permalink'] == $permalink) {
+                $taxonData = $this->mapper->getTaxonData($row['taxonomy_id'], $row['taxon_id']);
+
                 return $taxonData;
             }
         }

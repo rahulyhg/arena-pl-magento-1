@@ -127,7 +127,9 @@ class ArenaPl_Magento_Block_Categories extends Mage_Core_Block_Template
         return $this->helper->cacheExpensiveCall(
             $cacheKey,
             function () use ($taxonData) {
-                return $this->getTaxonomiesSelectInnerFunction($taxonData);
+                $baseTaxon = $this->getBaseTaxon($taxonData);
+
+                return $this->getTaxonomiesSelectInnerFunction($baseTaxon);
             },
             [self::CACHE_KEY],
             self::CACHE_TIMEOUT
