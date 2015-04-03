@@ -8,6 +8,11 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
     const ATTRIBUTE_PRODUCT_ARENA_ID = 'arena_product_id';
 
     /**
+     * EAV product variant attribute.
+     */
+    const ATTRIBUTE_PRODUCT_VARIANT_ARENA_ID = 'arena_product_variant_id';
+
+    /**
      * @var ArenaPl_Magento_Model_Mapper
      */
     protected $mapper;
@@ -49,19 +54,25 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
     {
         if ($this->isProductExported($product)) {
             $arenaProductId = $this->getArenaProductId($product);
+            $arenaProductVariantId = $this->getArenaProductVariantId($product);
 
             $this->resource->ensureArenaProductVisible($arenaProductId);
-            $this->resource->exportExistingProduct($product, $arenaProductId);
+            $this->resource->exportExistingProduct(
+                $product,
+                $arenaProductId,
+                $arenaProductVariantId
+            );
         } else {
-            $arenaProductId = $this->resource->exportNewProduct($product);
-            if ($arenaProductId) {
-                $this->saveArenaProductId($product, $arenaProductId);
+            list($arenaProductId, $arenaProductVariantId) = $this->resource->exportNewProduct($product);
+
+            if ($arenaProductId && $arenaProductVariantId) {
+                $this->saveArenaProductId($product, $arenaProductId, $arenaProductVariantId);
             }
         }
 
-        if ($arenaProductId) {
-            $this->updateProductStockQuantity($product, $arenaProductId);
-            $this->exportImages($product, $arenaProductId);
+        if ($arenaProductId && $arenaProductVariantId) {
+            $this->updateProductStockQuantity($product, $arenaProductId, $arenaProductVariantId);
+            $this->exportImages($product, $arenaProductId, $arenaProductVariantId);
         }
     }
 
@@ -137,7 +148,8 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      */
     protected function isProductExported(Mage_Catalog_Model_Product $product)
     {
-        return $this->getArenaProductId($product) != 0;
+        return $this->getArenaProductId($product) != 0
+            && $this->getArenaProductVariantId($product);
     }
 
     /**
@@ -152,13 +164,27 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
 
     /**
      * @param Mage_Catalog_Model_Product $product
+     *
+     * @return int
+     */
+    protected function getArenaProductVariantId(Mage_Catalog_Model_Product $product)
+    {
+        return (int) $product->getArenaProductVariantId();
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
      * @param int                        $arenaProductId
+     * @param int                        $arenaProductVariantId
      */
     protected function saveArenaProductId(
         Mage_Catalog_Model_Product $product,
-        $arenaProductId
+        $arenaProductId,
+        $arenaProductVariantId
     ) {
         $product->setData(self::ATTRIBUTE_PRODUCT_ARENA_ID, (int) $arenaProductId);
+        $product->setData(self::ATTRIBUTE_PRODUCT_VARIANT_ARENA_ID, (int) $arenaProductVariantId);
+
         $product->save();
     }
 
@@ -243,10 +269,12 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
     /**
      * @param Mage_Catalog_Model_Product $product
      * @param int                        $arenaProductId
+     * @param int                        $arenaProductVariantId
      */
     protected function updateProductStockQuantity(
         Mage_Catalog_Model_Product $product,
-        $arenaProductId
+        $arenaProductId,
+        $arenaProductVariantId
     ) {
         /* @var $stockItem Mage_CatalogInventory_Model_Stock_Item */
         $stockItem = $product->getStockItem();
@@ -255,6 +283,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
 
         $this->resource->updateProductStockQuantity(
             (int) $arenaProductId,
+            (int) $arenaProductVariantId,
             (int) $stockLocationData['id'],
             (int) $stockItem->getQty(),
             (bool) $stockItem->getBackorders()
@@ -450,5 +479,27 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             $productData['master']['id'],
             $translatedOptionTypes
         );
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return bool
+     */
+    protected function isProductArenaMaster(Mage_Catalog_Model_Product $product)
+    {
+        return $this->resource->isProductTypeConfigurable($product)
+            || empty($this->resource->getRelationsByChild($product->getId()));
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return bool
+     */
+    protected function isProductArenaVariant(Mage_Catalog_Model_Product $product)
+    {
+        return $this->resource->isProductTypeSimple($product)
+            && !empty($this->resource->getRelationsByChild($product->getId()));
     }
 }

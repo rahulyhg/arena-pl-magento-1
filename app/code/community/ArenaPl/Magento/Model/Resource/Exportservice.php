@@ -27,10 +27,6 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         $this->productsRelation = Mage::getResourceSingleton('catalog/product_relation');
     }
 
-    protected function _construct()
-    {
-    }
-
     /**
      * @param int $arenaProductId
      *
@@ -64,7 +60,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     /**
      * @param Mage_Catalog_Model_Product $product
      *
-     * @return int|null
+     * @return int[]|null[]
      */
     public function exportNewProduct(Mage_Catalog_Model_Product $product)
     {
@@ -76,7 +72,9 @@ class ArenaPl_Magento_Model_Resource_Exportservice
 
             $result = $apiCall->getResult();
 
-            return empty($result['id']) ? null : (int) $result['id'];
+            return (empty($result['id']) || empty($result['master']['id']))
+                ? [null, null]
+                : [(int) $result['id'], (int) $result['master']['id']];
         } catch (Exception $e) {
             return;
         }
@@ -87,7 +85,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      *
      * @return bool
      */
-    protected function isProductTypeSimple(Mage_Catalog_Model_Product $product)
+    public function isProductTypeSimple(Mage_Catalog_Model_Product $product)
     {
         return $product->getTypeId() === Mage_Catalog_Model_Product_Type::TYPE_SIMPLE;
     }
@@ -97,7 +95,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      *
      * @return bool
      */
-    protected function isProductTypeConfigurable(Mage_Catalog_Model_Product $product)
+    public function isProductTypeConfigurable(Mage_Catalog_Model_Product $product)
     {
         return $product->getTypeId() === Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE;
     }
@@ -105,10 +103,12 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     /**
      * @param Mage_Catalog_Model_Product $product
      * @param int                        $arenaProductId
+     * @param int                        $arenaProductVariantId
      */
     public function exportExistingProduct(
         Mage_Catalog_Model_Product $product,
-        $arenaProductId
+        $arenaProductId,
+        $arenaProductVariantId
     ) {
         $productData = $this->prepareArenaCompatibleData($product);
 
@@ -234,6 +234,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
 
     /**
      * @param int  $arenaProductId
+     * @param int  $arenaProductVariantId
      * @param int  $stockLocationId
      * @param int  $qty
      * @param bool $allowBackorders
@@ -242,11 +243,17 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      */
     public function updateProductStockQuantity(
         $arenaProductId,
+        $arenaProductVariantId,
         $stockLocationId,
         $qty,
         $allowBackorders
     ) {
-        $stockItemData = $this->getStockItemData($arenaProductId, $stockLocationId);
+        $stockItemData = $this->getStockItemData(
+            $arenaProductId,
+            $arenaProductVariantId,
+            $stockLocationId
+        );
+
         if (!is_array($stockItemData)) {
             return false;
         }
@@ -263,19 +270,17 @@ class ArenaPl_Magento_Model_Resource_Exportservice
 
     /**
      * @param int $arenaProductId
+     * @param int $arenaProductVariantId
      * @param int $stockLocationId
      *
      * @return array|null
      */
-    protected function getStockItemData($arenaProductId, $stockLocationId)
-    {
-        $productData = $this->getArenaProductData($arenaProductId);
-        if (!is_array($productData)) {
-            return;
-        }
-
-        $masterVariantId = (int) $productData['master']['id'];
-        $foundStockItems = $this->findStockItems($masterVariantId, $stockLocationId);
+    protected function getStockItemData(
+        $arenaProductId,
+        $arenaProductVariantId,
+        $stockLocationId
+    ) {
+        $foundStockItems = $this->findStockItems($arenaProductVariantId, $stockLocationId);
         if (empty($foundStockItems)) {
             return;
         }
@@ -388,6 +393,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     {
         $read = ArenaPl_Magento_Helper_Data::getDBReadConnection();
         $select = $read->select()
+            ->distinct()
             ->from($this->productsRelation->getMainTable(), 'parent_id')
             ->where('child_id=?', $childId);
 
