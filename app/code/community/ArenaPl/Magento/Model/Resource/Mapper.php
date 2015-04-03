@@ -12,9 +12,57 @@ class ArenaPl_Magento_Model_Resource_Mapper
      */
     protected $client;
 
+    /**
+     * @var ArenaPl_Magento_Helper_Data
+     */
+    protected $helper;
+
     public function __construct()
     {
-        $this->client = Mage::helper('arenapl_magento')->getClient();
+        $this->helper = Mage::helper('arenapl_magento');
+        $this->client = $this->helper->getClient();
+    }
+
+    /**
+     * @param array $rawData
+     *
+     * @return array
+     */
+    public function processRawTaxonData(array $rawData)
+    {
+        return [
+            'taxon_id' => $rawData['id'],
+            'taxonomy_id' => $rawData['taxonomy_id'],
+            'name' => $rawData['name'],
+            'permalink' => $rawData['permalink'],
+            'parent_id' => $rawData['parent_id'],
+            'has_children' => !empty($rawData['taxons']),
+            'children' => empty($rawData['taxons']) ? [] : $rawData['taxons'],
+        ];
+    }
+
+    /**
+     * @param int $taxonomyId
+     * @param int $taxonId
+     *
+     * @return array|null
+     */
+    public function makeApiTaxonCall($taxonomyId, $taxonId)
+    {
+        $cacheKey = sprintf(
+            'arenapl_api_taxon_taxonomy_%d_taxon_%d',
+            $taxonomyId,
+            $taxonId
+        );
+
+        return $this->helper->cacheExpensiveCall(
+            $cacheKey,
+            function () use ($taxonomyId, $taxonId) {
+                return $this->getTaxon($taxonomyId, $taxonId);
+            },
+            [ArenaPl_Magento_Model_Mapper::CACHE_KEY],
+            ArenaPl_Magento_Model_Mapper::CACHE_TIMEOUT
+        );
     }
 
     /**

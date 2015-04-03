@@ -7,7 +7,7 @@ $installer->startSetup();
 
 $installer->addAttribute(
     Mage_Catalog_Model_Category::ENTITY,
-    ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATEGORY_ARENA_TAXONOMY_ID,
+    'arena_taxonomy_id',
     [
         'type' => 'int',
         'label' => 'Mapped taxonomy id',
@@ -25,7 +25,7 @@ $installer->addAttribute(
 
 $installer->addAttribute(
     Mage_Catalog_Model_Category::ENTITY,
-    ArenaPl_Magento_Model_Mapper::ATTRIBUTE_CATEGORY_ARENA_TAXON_ID,
+    'arena_taxon_id',
     [
         'type' => 'int',
         'label' => 'Mapped taxon id',

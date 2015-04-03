@@ -18,8 +18,12 @@ class ArenaPl_Magento_Observer_Category
     public function afterCategorySave(Varien_Event_Observer $observer)
     {
         if ($this->configAllowsUnmappedCategoryNotification()) {
-            $event = $observer->getEvent();
-            $this->addNotificationIfUnmappedCategory($event->getCategory());
+            try {
+                $event = $observer->getEvent();
+                $this->addNotificationIfUnmappedCategory($event->getCategory());
+            } catch (\Exception $e) {
+                Mage::logException($e);
+            }
         }
     }
 
@@ -46,9 +50,12 @@ class ArenaPl_Magento_Observer_Category
         $mapper = Mage::getSingleton('arenapl_magento/mapper');
 
         if (!$mapper->hasMappedTaxon($category)) {
+            $entityId = $category->getEntityId();
             $targetUrl = Mage::helper('adminhtml')
                 ->getUrl('/arenapl/categories')
-                . sprintf('#category-%d', $category->getEntityId());
+                . sprintf('#category-%d', $entityId);
+
+            $category->load($entityId, 'name');
 
             /* @var $inbox Mage_AdminNotification_Model_Inbox */
             $inbox = Mage::getModel('adminnotification/inbox');

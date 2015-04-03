@@ -26,8 +26,12 @@ class ArenaPl_Magento_Observer_Product
 
         $freshProduct = $product->load($productEntityId);
 
-        /* @var $exporter ArenaPl_Magento_Model_ExportService */
-        $exporter = Mage::getSingleton('arenapl_magento/exportservice');
-        $exporter->exportProduct($freshProduct);
+        try {
+            /* @var $exporter ArenaPl_Magento_Model_ExportService */
+            $exporter = Mage::getSingleton('arenapl_magento/exportservice');
+            $exporter->exportProduct($freshProduct);
+        } catch (\Exception $e) {
+            Mage::logException($e);
+        }
     }
 }
