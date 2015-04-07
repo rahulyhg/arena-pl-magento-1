@@ -15,7 +15,7 @@ require_once '../vendor/autoload.php';
  * @param string $state stan, w ktory ustawic wysylke (ready|ship)
  * @param string|null $trackingNumber nr sledzenia wysylki
  *
- * @return boolean false jesli wysylka jest w innym stanie niz oczekiwana
+ * @return bool false jesli wysylka jest w innym stanie niz oczekiwana
  *
  * @throws RuntimeException jesli podano nieznany stan lub do zamowienia
  *                          nie ma wysylek/jest wiecej niz 1 wysylka

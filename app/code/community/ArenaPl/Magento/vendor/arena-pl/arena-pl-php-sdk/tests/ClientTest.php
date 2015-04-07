@@ -56,6 +56,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
             ['\ArenaPl\ApiCall\GetTaxonTree', 'getTaxonTree'],
             ['\ArenaPl\ApiCall\GetTaxonomies', 'getTaxonomies'],
             ['\ArenaPl\ApiCall\RestoreArchivedProduct', 'restoreArchivedProduct'],
+            ['\ArenaPl\ApiCall\RestoreArchivedProductVariant', 'restoreArchivedProductVariant'],
             ['\ArenaPl\ApiCall\SetProductProperty', 'setProductProperty'],
             ['\ArenaPl\ApiCall\SetProductRelatedProducts', 'setProductRelatedProducts'],
             ['\ArenaPl\ApiCall\UpdateProduct', 'updateProduct'],

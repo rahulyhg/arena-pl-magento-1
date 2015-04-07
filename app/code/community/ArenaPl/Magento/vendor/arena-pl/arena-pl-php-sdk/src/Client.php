@@ -25,6 +25,7 @@ use ArenaPl\ApiCall\GetTaxon;
 use ArenaPl\ApiCall\GetTaxonomies;
 use ArenaPl\ApiCall\GetTaxonTree;
 use ArenaPl\ApiCall\RestoreArchivedProduct;
+use ArenaPl\ApiCall\RestoreArchivedProductVariant;
 use ArenaPl\ApiCall\SetProductProperty;
 use ArenaPl\ApiCall\SetProductRelatedProducts;
 use ArenaPl\ApiCall\UpdateProduct;
@@ -212,6 +213,16 @@ class Client
     public function restoreArchivedProduct()
     {
         return $this->apiCallFactory->getApiCall('RestoreArchivedProduct');
+    }
+
+    /**
+     * @api
+     *
+     * @return RestoreArchivedProductVariant
+     */
+    public function restoreArchivedProductVariant()
+    {
+        return $this->apiCallFactory->getApiCall('RestoreArchivedProductVariant');
     }
 
     /**
