@@ -32,11 +32,29 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      *
      * @return bool
      */
-    public function ensureArenaProductVisible($arenaProductId)
+    public function ensureArenaProductMasterVisible($arenaProductId)
     {
         try {
             return $this->client->restoreArchivedProduct()
                 ->setProductId($arenaProductId)
+                ->getResult();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * @param int $arenaProductId
+     * @param int $arenaProductVariantId
+     *
+     * @return bool
+     */
+    public function ensureArenaProductVariantVisible($arenaProductId, $arenaProductVariantId)
+    {
+        try {
+            return $this->client->restoreArchivedProductVariant()
+                ->setProductId($arenaProductId)
+                ->setProductVariantId($arenaProductVariantId)
                 ->getResult();
         } catch (Exception $e) {
             return false;
@@ -51,6 +69,22 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         try {
             $this->client->archiveProduct()
                 ->setProductId($arenaProductId)
+                ->getResult();
+        } catch (Exception $e) {
+            return;
+        }
+    }
+
+    /**
+     * @param int $arenaProductId
+     * @param int $arenaProductVariantId
+     */
+    public function archiveProductVariant($arenaProductId, $arenaProductVariantId)
+    {
+        try {
+            $this->client->archiveProductVariant()
+                ->setProductId($arenaProductId)
+                ->setProductVariantId($arenaProductVariantId)
                 ->getResult();
         } catch (Exception $e) {
             return;
@@ -82,6 +116,18 @@ class ArenaPl_Magento_Model_Resource_Exportservice
 
     /**
      * @param Mage_Catalog_Model_Product $product
+     * @param int                        $arenaProductId
+     *
+     * @return int|null
+     */
+    public function exportNewProductVariant(
+        Mage_Catalog_Model_Product $product,
+        $arenaProductId
+    ) {
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
      *
      * @return bool
      */
@@ -103,12 +149,10 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     /**
      * @param Mage_Catalog_Model_Product $product
      * @param int                        $arenaProductId
-     * @param int                        $arenaProductVariantId
      */
-    public function exportExistingProduct(
+    public function exportExistingMasterProduct(
         Mage_Catalog_Model_Product $product,
-        $arenaProductId,
-        $arenaProductVariantId
+        $arenaProductId
     ) {
         $productData = $this->prepareArenaCompatibleData($product);
 
@@ -120,6 +164,18 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         } catch (Exception $e) {
             return;
         }
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     * @param int                        $arenaProductId
+     * @param int                        $arenaProductVariantId
+     */
+    public function exportExistingVariantProduct(
+        Mage_Catalog_Model_Product $product,
+        $arenaProductId,
+        $arenaProductVariantId
+    ) {
     }
 
     /**
@@ -141,7 +197,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         $data['price'] = (string) $arenaCompatiblePrice;
 
         $taxonIds = [];
-        $collection = ArenaPl_Magento_Model_Exportservice::getProductCategoryCollection($product);
+        $collection = ArenaPl_Magento_Model_Exportservicequery::getProductCategoryCollection($product);
 
         /* @var $category Mage_Catalog_Model_Category */
         foreach ($collection as $category) {
@@ -175,7 +231,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     /**
      * @param int $arenaProductId
      */
-    public function deleteExistingArenaImages($arenaProductId)
+    public function deleteExistingArenaMasterImages($arenaProductId)
     {
         $productData = $this->getArenaProductData($arenaProductId);
         if (!is_array($productData)) {
@@ -194,6 +250,16 @@ class ArenaPl_Magento_Model_Resource_Exportservice
             } catch (Exception $e) {
             }
         }
+    }
+
+    /**
+     * @param int $arenaProductId
+     * @param int $arenaProductVariantId
+     *
+     * @todo implement this
+     */
+    public function deleteExistingArenaVariantImages($arenaProductId, $arenaProductVariantId)
+    {
     }
 
     /**
@@ -230,6 +296,17 @@ class ArenaPl_Magento_Model_Resource_Exportservice
             } catch (Exception $e) {
             }
         }
+    }
+
+    /**
+     * @param int      $arenaProductId
+     * @param int      $arenaProductVariantId
+     * @param string[] $imageUrls
+     *
+     * @todo implement this
+     */
+    public function addVariantImages($arenaProductId, $arenaProductVariantId, array $imageUrls)
+    {
     }
 
     /**
@@ -385,6 +462,8 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     }
 
     /**
+     * Returns array of product parent IDs.
+     *
      * @param int $childId
      *
      * @return array
