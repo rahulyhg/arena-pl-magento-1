@@ -77,10 +77,11 @@ class ArenaPl_Magento_Model_Exportservicequery
      *
      * @return bool
      */
-    public function isProductArenaMaster(Mage_Catalog_Model_Product $product)
-    {
+    public function productShouldBeArenaMaster(Mage_Catalog_Model_Product $product)
+    {                
         return $this->resource->isProductTypeConfigurable($product)
-            || empty($this->resource->getRelationsByChild($product->getId()));
+            || empty($this->resource->getParentsIdsByChildId($product->getId()))
+            || $this->isProductColorVariant($product);
     }
 
     /**
@@ -91,7 +92,18 @@ class ArenaPl_Magento_Model_Exportservicequery
     public function isProductArenaVariant(Mage_Catalog_Model_Product $product)
     {
         return $this->resource->isProductTypeSimple($product)
-            && !empty($this->resource->getRelationsByChild($product->getId()));
+            && !empty($this->resource->getParentsIdsByChildId($product->getId()))
+            && !$this->isProductColorVariant($product);
+    }
+    
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return bool
+     */
+    public function isProductColorVariant(Mage_Catalog_Model_Product $product)
+    {
+        return !empty($product->getData('color'));
     }
 
     /**
@@ -134,7 +146,7 @@ class ArenaPl_Magento_Model_Exportservicequery
      */
     public function getProductParent(Mage_Catalog_Model_Product $product)
     {
-        $parentIds = $this->resource->getRelationsByChild($product->getId());
+        $parentIds = $this->resource->getParentsIdsByChildId($product->getId());
 
         if (empty(($parentIds))) {
             return;
@@ -228,6 +240,183 @@ class ArenaPl_Magento_Model_Exportservicequery
 
         $collection->addAttributeToSelect('*');
 
+        return $collection;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return array [property_id => product_value]
+     */
+    public function getProductProperties(Mage_Catalog_Model_Product $product)
+    {
+        $mappedProductAttributes = $this->mapper->getMappedProductAttributes($product);
+        if (empty($mappedProductAttributes)) {
+            return [];
+        }
+
+        $arenaProductId = $this->getArenaProductId($product);
+
+        $productData = $this->resource->getArenaProductData($arenaProductId);
+        if (empty($productData['product_properties'])) {
+            return [];
+        }
+
+        $filteredProductAttributes = [];
+
+        foreach ($product->getAttributes() as $attribute) {
+            $attributeId = (int) $attribute->getAttributeId();
+            if ($attributeId && isset($mappedProductAttributes[$attributeId])) {
+                $filteredProductAttributes[$attributeId] = $attribute;
+            }
+        }
+
+        $flippedMappedProductAttrs = array_flip($mappedProductAttributes);
+
+        $returnValues = [];
+
+        foreach ($productData['product_properties'] as $data) {
+            if (isset($flippedMappedProductAttrs[$data['property_name']])
+                && isset($filteredProductAttributes[$flippedMappedProductAttrs[$data['property_name']]])
+            ) {
+                /* @var $attribute Mage_Catalog_Model_Resource_Eav_Attribute */
+                $attribute = $filteredProductAttributes[$flippedMappedProductAttrs[$data['property_name']]];
+
+                $productValue = $product->getData($attribute->getAttributeCode());
+
+                $attributeOptions = $attribute->usesSource() ? $attribute->getSource()->getAllOptions() : [];
+                foreach ($attributeOptions as $labelValue) {
+                    if ($labelValue['value'] === $productValue) {
+                        $productValue = $labelValue['label'];
+                        break;
+                    }
+                }
+
+                $returnValues[$data['id']] = $productValue;
+            }
+        }
+
+        return $returnValues;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     * @param int                        $arenaProductId
+     *
+     * @return int[]
+     */
+    public function getProductOptionValues(
+        Mage_Catalog_Model_Product $product,
+        $arenaProductId
+    ) {
+        $productData = $this->resource->getArenaProductData($arenaProductId);
+        if (!is_array($productData)) {
+            return [];
+        }
+
+        $mappedProductAttributes = $this->mapper->getMappedProductAttributes($product);
+        if (empty($mappedProductAttributes)) {
+            return [];
+        }
+
+        $mappedAttributeOptions = $this->mapper->getMappedAttributeOptions(
+            array_keys($mappedProductAttributes)
+        );
+        if (empty($mappedAttributeOptions)) {
+            return [];
+        }
+
+        $mappedAttributes = [];
+        $mappedAttributesIds = array_keys($mappedAttributeOptions);
+
+        /* @var $attribute Mage_Catalog_Model_Resource_Eav_Attribute */
+        foreach ($product->getAttributes() as $attribute) {
+            $attributeId = (int) $attribute->getAttributeId();
+            if (in_array($attributeId, $mappedAttributesIds)) {
+                $mappedAttributes[$attributeId] = $attribute;
+            }
+        }
+
+        $productOptionValuesNames = [];
+
+        foreach ($mappedAttributeOptions as $attributeId => $mappedOptions) {
+            if (isset($mappedAttributes[$attributeId])) {
+                $code = $mappedAttributes[$attributeId]->getAttributeCode();
+                $attributeValue = $product->getData($code);
+                if (isset($mappedOptions[$attributeValue])) {
+                    $productOptionValuesNames[] = $mappedOptions[$attributeValue];
+                }
+            }
+        }
+        if (empty($productOptionValuesNames)) {
+            return [];
+        }
+
+        $prototypeTaxonId = current($productData['taxon_ids']);
+        $prototypeCategoryData = null;
+
+        /* @var $category Mage_Catalog_Model_Category */
+        foreach (self::getProductCategoryCollection($product) as $category) {
+            $categoryTaxonData = $this->mapper->getMappedArenaTaxon($category);
+            if ($categoryTaxonData['taxon_id'] === $prototypeTaxonId) {
+                $prototypeCategoryData = $categoryTaxonData;
+                break;
+            }
+        }
+
+        if (empty($prototypeCategoryData)) {
+            return [];
+        }
+
+        $prototype = $this->mapper->getTaxonPrototype(
+            $prototypeCategoryData['taxonomy_id'],
+            $prototypeTaxonId
+        );
+
+        if (empty($prototype['spree_option_types'])) {
+            return [];
+        }
+
+        $translatedOptionTypes = [];
+
+        foreach ($prototype['spree_option_types'] as $optionType) {
+            foreach ($optionType['spree_option_values'] as $optionValue) {
+                if (in_array($optionValue['name'], $productOptionValuesNames)) {
+                    $translatedOptionTypes[] = $optionValue['id'];
+                }
+            }
+        }
+
+        return $translatedOptionTypes;
+    }
+    
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     * @return Varien_Data_Collection
+     */
+    public function getProductSiblings(Mage_Catalog_Model_Product $product)
+    {
+        $collection = new Varien_Data_Collection();
+        
+        $parent = $this->getProductParent($product);
+        if ($parent instanceof Mage_Catalog_Model_Product) {
+            $childrenIds = $this->resource->getChildrenIdsByParentId($parent->getId());
+            $keysToRemove = array_keys($childrenIds, $product->getId());
+            $productSiblingsIds = array_diff_key($childrenIds, $keysToRemove);
+        }
+        
+        if (!empty($productSiblingsIds)) {
+            /* @var $collection Mage_Catalog_Model_Resource_Product_Collection */
+            $productCollection = Mage::getModel('catalog/product')->getCollection();
+            
+            $productCollection->addAttributeToFilter('entity_id', ['eq' => array_unique($productSiblingsIds)]);
+            $productCollection->addAttributeToSelect('*');
+        
+            foreach($productCollection as $sibling) {
+                $collection->addItem($sibling);
+            }
+        }
+        
         return $collection;
     }
 }

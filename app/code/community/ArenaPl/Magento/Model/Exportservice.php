@@ -115,21 +115,35 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
                 );
             } else {
                 $this->resource->ensureArenaProductVariantVisible($arenaProductId, $arenaProductVariantId);
-                $this->resource->exportExistingVariantProduct(
-                    $product,
-                    $arenaProductId,
-                    $arenaProductVariantId
-                );
+
+                $productOptionValues = $this->query->getProductOptionValues($product, $arenaProductId);
+                if (!empty($productOptionValues)) {
+                    $this->resource->exportExistingVariantProduct(
+                        $product,
+                        $arenaProductId,
+                        $arenaProductVariantId,
+                        $productOptionValues
+                    );
+                }
             }
         } else {
             if ($isMaster) {
                 list($arenaProductId, $arenaProductVariantId) = $this->resource->exportNewProduct($product);
             } else {
-                $arenaProductId = $this->ensureMasterProductExported($product);
-                $arenaProductVariantId = $this->resource->exportNewProductVariant(
-                    $product,
-                    $arenaProductId
-                );
+                try {
+                    $arenaProductId = $this->ensureMasterProductExported($product);
+
+                    $productOptionValues = $this->query->getProductOptionValues($product, $arenaProductId);
+                    if (!empty($productOptionValues)) {
+                        $arenaProductVariantId = $this->resource->exportNewProductVariant(
+                            $product,
+                            $arenaProductId,
+                            $productOptionValues
+                        );
+                    }
+                } catch (\Exception $e) {
+                    Mage::logException($e);
+                }
             }
 
             if ($arenaProductId && $arenaProductVariantId) {
@@ -139,7 +153,12 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
 
         if ($arenaProductId && $arenaProductVariantId) {
             $this->updateProductStockQuantity($product, $arenaProductId, $arenaProductVariantId);
-            $this->exportImages($product, $arenaProductId, $arenaProductVariantId);
+            $this->exportImages(
+                $product,
+                $arenaProductId,
+                $arenaProductVariantId,
+                $isMaster
+            );
         }
     }
 
@@ -177,13 +196,13 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
 
     /**
      * @param Mage_Catalog_Model_Product $product
+     * @param bool                       $isMaster
      */
-    protected function exportProductEmptyStock(Mage_Catalog_Model_Product $product)
+    protected function exportProductEmptyStock(Mage_Catalog_Model_Product $product, $isMaster)
     {
         if ($this->query->isProductExported($product)) {
             $arenaProductId = $this->query->getArenaProductId($product);
             $arenaProductVariantId = $this->query->getArenaProductVariantId($product);
-            $isMaster = $this->query->isProductArenaMaster($product);
 
             if ($isMaster) {
                 $this->resource->ensureArenaProductMasterVisible($arenaProductId);
@@ -192,7 +211,12 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             }
 
             $this->updateProductStockQuantity($product, $arenaProductId, $arenaProductVariantId);
-            $this->exportImages($product, $arenaProductId, $arenaProductVariantId);
+            $this->exportImages(
+                $product,
+                $arenaProductId,
+                $arenaProductVariantId,
+                $isMaster
+            );
 
             if ($isMaster) {
                 $this->resource->archiveProduct($arenaProductId);
@@ -222,14 +246,14 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      * @param Mage_Catalog_Model_Product $product
      * @param int                        $arenaProductId
      * @param int                        $arenaProductVariantId
+     * @param bool                       $isMaster
      */
     protected function exportImages(
         Mage_Catalog_Model_Product $product,
         $arenaProductId,
-        $arenaProductVariantId
+        $arenaProductVariantId,
+        $isMaster
     ) {
-        $isMaster = $this->query->isProductArenaMaster($product);
-
         if ($isMaster) {
             $this->resource->deleteExistingArenaMasterImages($arenaProductId);
         } else {
@@ -244,7 +268,7 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
         if ($isMaster) {
             $this->resource->addProductImages($arenaProductId, $productImageUrls);
         } else {
-            $this->resource->addVariantImages($arenaProductId, $arenaProductVariantId, $productImageUrls);
+            $this->resource->addVariantImages($arenaProductVariantId, $productImageUrls);
         }
     }
 
@@ -315,51 +339,20 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      */
     protected function exportProductProperties(Mage_Catalog_Model_Product $product)
     {
-        $mappedProductAttributes = $this->mapper->getMappedProductAttributes($product);
-        if (empty($mappedProductAttributes)) {
+        $productProperties = $this->query->getProductProperties($product);
+
+        if (empty($productProperties)) {
             return;
         }
 
         $arenaProductId = $this->query->getArenaProductId($product);
-        $productData = $this->resource->getArenaProductData($arenaProductId);
-        if (empty($productData['product_properties'])) {
-            return;
-        }
 
-        $filteredProductAttributes = [];
-
-        foreach ($product->getAttributes() as $attribute) {
-            $attributeId = (int) $attribute->getAttributeId();
-            if ($attributeId && isset($mappedProductAttributes[$attributeId])) {
-                $filteredProductAttributes[$attributeId] = $attribute;
-            }
-        }
-
-        $flippedMappedProductAttrs = array_flip($mappedProductAttributes);
-
-        foreach ($productData['product_properties'] as $data) {
-            if (isset($flippedMappedProductAttrs[$data['property_name']])
-                && isset($filteredProductAttributes[$flippedMappedProductAttrs[$data['property_name']]])
-            ) {
-                /* @var $attribute Mage_Catalog_Model_Resource_Eav_Attribute */
-                $attribute = $filteredProductAttributes[$flippedMappedProductAttrs[$data['property_name']]];
-
-                $productValue = $product->getData($attribute->getAttributeCode());
-
-                $attributeOptions = $attribute->usesSource() ? $attribute->getSource()->getAllOptions() : [];
-                foreach ($attributeOptions as $labelValue) {
-                    if ($labelValue['value'] === $productValue) {
-                        $productValue = $labelValue['label'];
-                        break;
-                    }
-                }
-
-                $this->resource->saveArenaProductProperty(
-                    $arenaProductId,
-                    $data['id'],
-                    $productValue
-                );
-            }
+        foreach ($productProperties as $propertyId => $productValue) {
+            $this->resource->saveArenaProductProperty(
+                $arenaProductId,
+                $propertyId,
+                $productValue
+            );
         }
     }
 
@@ -368,88 +361,45 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
      */
     protected function exportProductOptionValues(Mage_Catalog_Model_Product $product)
     {
-        $arenaProductId = $this->query->getArenaProductId($product);
-        $productData = $this->resource->getArenaProductData($arenaProductId);
-        if (!is_array($productData)) {
-            return;
-        }
+        $productOptionValues = $this->query->getProductProperties($product);
 
-        $mappedProductAttributes = $this->mapper->getMappedProductAttributes($product);
-        if (empty($mappedProductAttributes)) {
-            return;
-        }
-
-        $mappedAttributeOptions = $this->mapper->getMappedAttributeOptions(
-            array_keys($mappedProductAttributes)
-        );
-        if (empty($mappedAttributeOptions)) {
-            return;
-        }
-
-        $mappedAttributes = [];
-        $mappedAttributesIds = array_keys($mappedAttributeOptions);
-
-        foreach ($product->getAttributes() as $attribute) {
-            $attributeId = (int) $attribute->getAttributeId();
-            if (in_array($attributeId, $mappedAttributesIds)) {
-                $mappedAttributes[$attributeId] = $attribute;
-            }
-        }
-
-        $productOptionValuesNames = [];
-
-        foreach ($mappedAttributeOptions as $attributeId => $mappedOptions) {
-            if (isset($mappedAttributes[$attributeId])) {
-                $code = $mappedAttributes[$attributeId]->getAttributeCode();
-                $attributeValue = $product->getData($code);
-                if (isset($mappedOptions[$attributeValue])) {
-                    $productOptionValuesNames[] = $mappedOptions[$attributeValue];
-                }
-            }
-        }
-
-        $prototypeTaxonId = current($productData['taxon_ids']);
-        $prototypeCategory = null;
-
-        /* @var $category Mage_Catalog_Model_Category */
-        foreach ($this->query->getProductCategoryCollection($product) as $category) {
-            if ((int) $category->getArenaTaxonId() === $prototypeTaxonId) {
-                $prototypeCategory = $category;
-                break;
-            }
-        }
-
-        if (!$prototypeCategory) {
-            return;
-        }
-
-        $translatedOptionTypes = [];
-        $prototypeTaxonomyId = (int) $prototypeCategory->getArenaTaxonomyId();
-        $prototype = $this->mapper->getTaxonPrototype(
-            $prototypeTaxonomyId,
-            $prototypeTaxonId
-        );
-
-        if (empty($prototype['spree_option_types'])) {
-            return;
-        }
-
-        foreach ($prototype['spree_option_types'] as $optionType) {
-            foreach ($optionType['spree_option_values'] as $optionValue) {
-                if (in_array($optionValue['name'], $productOptionValuesNames)) {
-                    $translatedOptionTypes[] = $optionValue['id'];
-                }
-            }
-        }
-
-        if (empty($translatedOptionTypes)) {
+        if (empty($productOptionValues)) {
             return;
         }
 
         $this->resource->saveArenaProductVariantOptionValues(
-            $arenaProductId,
-            $productData['master']['id'],
-            $translatedOptionTypes
+            $this->query->getArenaProductId($product),
+            $this->query->getArenaProductVariantId($product),
+            $productOptionValues
         );
+    }
+    
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     */
+    protected function setProductColorRelations(Mage_Catalog_Model_Product $product)
+    {
+        $productSiblings = $this->query->getProductSiblings($product);
+        
+        $productArenaId = $this->query->getArenaProductId($product);
+        if (!$productArenaId) {
+            return;
+        }
+        
+        $idsToRelate = [];
+        foreach($productSiblings as $sibling) {
+            if ($this->query->isProductColorVariant($sibling)) {
+                $siblingArenaId = $this->query->getArenaProductId($sibling);
+                if ($siblingArenaId && $siblingArenaId != $productArenaId) {
+                    $idsToRelate[] = $siblingArenaId;
+                }
+            }
+        }
+        
+        if (empty($idsToRelate)) {
+            return;
+        }
+        
+        $this->resource->setProductsRelation($productArenaId,$idsToRelate);
     }
 }
