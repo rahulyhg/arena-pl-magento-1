@@ -4,6 +4,18 @@ interface ArenaPl_Magento_EventInterface
 {
     /**
      * Event data:
+     * - 'product' => Mage_Catalog_Model_Product.
+     */
+    const EVENT_PRE_PRODUCT_EXPORT = 'arenapl_pre_product_export';
+
+    /**
+     * Event data:
+     * - 'product' => Mage_Catalog_Model_Product.
+     */
+    const EVENT_POST_PRODUCT_EXPORT = 'arenapl_post_product_export';
+
+    /**
+     * Event data:
      * - 'taxons_data' => array.
      */
     const EVENT_PRE_SAVE_MAPPED_CATEGORIES = 'arenapl_pre_save_mapped_categories';

@@ -44,32 +44,64 @@ class ArenaPl_Magento_Model_Exportservice extends Mage_Core_Model_Abstract
             $this->mapper
         );
     }
+    
+    /**
+     * Warning! This method destroys arena product ID mapping.
+     * 
+     * @param Mage_Catalog_Model_Product $product
+     */
+    public function cleanArenaData(Mage_Catalog_Model_Product $product)
+    {
+        $product->setData(self::ATTRIBUTE_PRODUCT_ARENA_ID, null);
+        $product->setData(self::ATTRIBUTE_PRODUCT_VARIANT_ARENA_ID, null);
+    }
 
     /**
      * @param Mage_Catalog_Model_Product $product
      */
     public function exportProduct(Mage_Catalog_Model_Product $product)
     {
-        if (!$this->query->isAnyProductCategoryMapped($product)) {
-            return;
+        Mage::dispatchEvent(
+            ArenaPl_Magento_EventInterface::EVENT_PRE_PRODUCT_EXPORT,
+            [
+                'product' => $product,
+            ]
+        );
+
+        if ($this->query->isAnyProductCategoryMapped($product)) {
+            $isMaster = $this->query->productShouldBeArenaMaster($product);
+
+            if ($this->query->isProductOnStock($product)) {
+                $this->exportProductOnStock($product, $isMaster);
+            } else {
+                $this->exportProductEmptyStock($product, $isMaster);
+            }
+
+            if ($isMaster) {
+                $this->exportProductProperties($product);
+                $this->exportProductOptionValues($product);
+                if ($this->query->isProductColorVariant($product)) {
+                    $this->setProductColorRelations($product);
+                }
+            }
         }
 
-        if ($this->query->isProductOnStock($product)) {
-            $this->exportProductOnStock($product);
-        } else {
-            $this->exportProductEmptyStock($product);
-        }
-
-        $this->exportProductProperties($product);
-        $this->exportProductOptionValues($product);
+        Mage::dispatchEvent(
+            ArenaPl_Magento_EventInterface::EVENT_POST_PRODUCT_EXPORT,
+            [
+                'product' => $product,
+            ]
+        );
     }
 
     /**
      * @param Mage_Catalog_Model_Product $product
+     * @param bool                       $isMaster
      */
-    protected function exportProductOnStock(Mage_Catalog_Model_Product $product)
+    protected function exportProductOnStock(Mage_Catalog_Model_Product $product, $isMaster)
     {
-        $isMaster = $this->query->isProductArenaMaster($product);
+        $arenaProductId = null;
+        $arenaProductVariantId = null;
 
         if ($this->query->isProductExported($product)) {
             $arenaProductId = $this->query->getArenaProductId($product);
