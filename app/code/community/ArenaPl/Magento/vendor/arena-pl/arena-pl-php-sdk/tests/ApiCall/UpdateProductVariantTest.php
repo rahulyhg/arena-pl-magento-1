@@ -86,7 +86,7 @@ class UpdateProductVariantTest extends \PHPUnit_Framework_TestCase
             ->with($this->callback($callback))
             ->willReturn($response);
 
-        $this->updateProductVariant->setPrice($price);
+        $this->updateProductVariant->setVariantField('price', $price);
         $this->updateProductVariant->getResult();
     }
 
@@ -98,5 +98,28 @@ class UpdateProductVariantTest extends \PHPUnit_Framework_TestCase
             ['456', '456,00'],
             [789,'789,00'],
         ];
+    }
+
+    public function testFieldNormalizers()
+    {
+        $response = $this->getStringBasedResponse(json_encode(['create' => 'ok']));
+
+        $this->clientMock
+            ->method('makeAPICall')
+            ->willReturn($response);
+
+        $this->updateProductVariant->setVariantData([
+            'pRiCe' => 9,
+            'CUSTOM_field' => '!working',
+        ]);
+
+        $this->updateProductVariant->getResult();
+
+        $this->assertSame([
+            'variant' => [
+                'price' => '9,00',
+                'custom_field' => '!working',
+            ],
+        ], $this->updateProductVariant->getBody());
     }
 }

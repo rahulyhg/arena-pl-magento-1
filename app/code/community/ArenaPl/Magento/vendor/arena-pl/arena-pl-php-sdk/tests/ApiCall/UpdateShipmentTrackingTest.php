@@ -2,6 +2,7 @@
 
 namespace ArenaPl\Test\ApiCall;
 
+use ArenaPl\ApiCall\ApiCallInterface;
 use ArenaPl\ApiCall\UpdateShipmentTracking;
 use ArenaPl\Test\ApiCallExecutor\ApiCallExecutorMockTrait;
 use ArenaPl\Test\ReflectionToolsTrait;
@@ -65,6 +66,11 @@ class UpdateShipmentTrackingTest extends \PHPUnit_Framework_TestCase
         $this->assertSame(
             '/api/shipments/12345',
             $this->updateShipmentTracking->getPath()
+        );
+
+        $this->assertSame(
+            ApiCallInterface::METHOD_PUT,
+            $this->updateShipmentTracking->getMethod()
         );
     }
 }

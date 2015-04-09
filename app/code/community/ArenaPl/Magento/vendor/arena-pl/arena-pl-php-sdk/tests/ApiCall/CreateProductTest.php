@@ -2,6 +2,7 @@
 
 namespace ArenaPl\Test\ApiCall;
 
+use ArenaPl\ApiCall\ApiCallInterface;
 use ArenaPl\ApiCall\CreateProduct;
 use ArenaPl\Test\ApiCallExecutor\ApiCallExecutorMockTrait;
 
@@ -19,6 +20,19 @@ class CreateProductTest extends \PHPUnit_Framework_TestCase
         $this->setupClientMock();
 
         $this->createProduct = new CreateProduct($this->clientMock);
+    }
+
+    public function testPathBuild()
+    {
+        $this->assertSame(
+            '/api/products',
+            $this->createProduct->getPath()
+        );
+
+        $this->assertSame(
+            ApiCallInterface::METHOD_POST,
+            $this->createProduct->getMethod()
+        );
     }
 
     public function testProductsDataShouldBeErasedAtconsecutiveCalls()

@@ -33,7 +33,7 @@ class CreateProductVariantTest extends \PHPUnit_Framework_TestCase
             ->willReturn($response);
 
         $this->createProductVariant->setProductId(123);
-        $this->createProductVariant->setPrice(3.99);
+        $this->createProductVariant->setVariantField('price', 3.99);
         $this->createProductVariant->setOptionValueIds([456, 789]);
 
         $this->assertSame(
@@ -51,6 +51,27 @@ class CreateProductVariantTest extends \PHPUnit_Framework_TestCase
         $this->assertSame([
             'variant[option_value_ids]' => '456,789',
             'variant[price]' => '3,99',
+        ], $this->createProductVariant->getQuery());
+    }
+
+    public function testFieldNormalizers()
+    {
+        $response = $this->getStringBasedResponse(json_encode(['create' => 'ok']));
+
+        $this->clientMock
+            ->method('makeAPICall')
+            ->willReturn($response);
+
+        $this->createProductVariant->setVariantData([
+            'pRiCe' => 1.23,
+            'CUSTOM_FIELD' => 'working',
+        ]);
+
+        $this->createProductVariant->getResult();
+
+        $this->assertSame([
+             'variant[price]' => '1,23',
+             'variant[custom_field]' => 'working',
         ], $this->createProductVariant->getQuery());
     }
 }

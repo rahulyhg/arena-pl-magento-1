@@ -1,0 +1,37 @@
+language: php
+
+git:
+  depth: 30
+
+php:
+  - 5.4
+  - 5.5
+  - 5.6
+  - 7
+  - hhvm
+
+install:
+  - if [ $TRAVIS_PHP_VERSION == "7" ]; then pecl install xdebug; fi;
+  - composer self-update
+  - composer install
+
+script:
+  - phpenv rehash
+  - phpunit
+
+after_script:
+  - CODECLIMATE_REPO_TOKEN=8f8efbe95b60b6f1c964ca977205deee6258be7e24cb6c049f4ababf490cf6a3 ./bin/test-reporter --stdout > codeclimate.json
+  - "curl -X POST -d @codeclimate.json -H 'Content-Type: application/json' -H 'User-Agent: Code Climate (PHP Test Reporter v0.1.1)' https://codeclimate.com/test_reports"
+
+matrix:
+  allow_failures:
+    - php: 7
+    - php: hhvm
+  fast_finish: true
+
+notifications:
+  email:
+    recipients:
+      - spiechu@gmail.com
+    on_success: change
+    on_failure: change

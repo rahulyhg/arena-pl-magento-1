@@ -11,30 +11,6 @@ class CreateProductVariant extends AbstractProductCall implements ApiCallInterfa
     use OptionValueTrait;
 
     /**
-     * Normalized price.
-     *
-     * @var string|null
-     */
-    protected $price = null;
-
-    /**
-     * @param mixed $price
-     *
-     * @return self
-     */
-    public function setPrice($price)
-    {
-        $this->ensureProductNormalizersLoaded();
-
-        $this->price = call_user_func(
-            $this->productNormalizers['price'],
-            $price
-        );
-
-        return $this;
-    }
-
-    /**
      * {@inheritDoc}
      */
     public function getMethod()
@@ -69,6 +45,8 @@ class CreateProductVariant extends AbstractProductCall implements ApiCallInterfa
      */
     protected function processVariantData()
     {
+        $this->ensureProductNormalizersLoaded();
+
         $this->query = [];
 
         $implodedOptionValueIds = implode(',', $this->getOptionValueIds());
@@ -76,8 +54,12 @@ class CreateProductVariant extends AbstractProductCall implements ApiCallInterfa
             $this->query['variant[option_value_ids]'] = $implodedOptionValueIds;
         }
 
-        if ($this->price !== null) {
-            $this->query['variant[price]'] = $this->price;
+        foreach ($this->variantData as $key => $value) {
+            $normalizedKey = trim(strtolower($key));
+            $normalizedValue = isset($this->productNormalizers[$normalizedKey])
+                ? call_user_func($this->productNormalizers[$normalizedKey], $value)
+                : $value;
+            $this->query['variant[' . $normalizedKey . ']'] = $normalizedValue;
         }
     }
 }

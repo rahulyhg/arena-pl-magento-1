@@ -2,7 +2,7 @@
 <config>
     <modules>
         <ArenaPl_Magento>
-            <version>0.0.3</version>
+            <version>0.0.4</version>
         </ArenaPl_Magento>
     </modules>
     <global>
@@ -54,13 +54,22 @@
             </catalog_category_save_after>
             <catalog_product_save_after>
                 <observers>
-                    <arenapl_magento_observer_category>
+                    <arenapl_magento_observer_product>
                         <type>singleton</type>
                         <class>ArenaPl_Magento_Observer_Product</class>
                         <method>afterProductSave</method>
-                    </arenapl_magento_observer_category>
+                    </arenapl_magento_observer_product>
                 </observers>
             </catalog_product_save_after>
+            <catalog_model_product_duplicate>
+                <observers>
+                    <arenapl_magento_observer_product>
+                        <type>singleton</type>
+                        <class>ArenaPl_Magento_Observer_Product</class>
+                        <method>onProductDuplicate</method>
+                    </arenapl_magento_observer_product>
+                </observers>
+            </catalog_model_product_duplicate>
         </events>
     </global>
     <admin>

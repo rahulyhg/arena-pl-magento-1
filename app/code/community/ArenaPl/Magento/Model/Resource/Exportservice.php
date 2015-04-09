@@ -27,20 +27,34 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         $this->productsRelation = Mage::getResourceSingleton('catalog/product_relation');
     }
 
-    protected function _construct()
-    {
-    }
-
     /**
      * @param int $arenaProductId
      *
      * @return bool
      */
-    public function ensureArenaProductVisible($arenaProductId)
+    public function ensureArenaProductMasterVisible($arenaProductId)
     {
         try {
             return $this->client->restoreArchivedProduct()
                 ->setProductId($arenaProductId)
+                ->getResult();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * @param int $arenaProductId
+     * @param int $arenaProductVariantId
+     *
+     * @return bool
+     */
+    public function ensureArenaProductVariantVisible($arenaProductId, $arenaProductVariantId)
+    {
+        try {
+            return $this->client->restoreArchivedProductVariant()
+                ->setProductId($arenaProductId)
+                ->setProductVariantId($arenaProductVariantId)
                 ->getResult();
         } catch (Exception $e) {
             return false;
@@ -62,17 +76,63 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     }
 
     /**
+     * @param int $arenaProductId
+     * @param int $arenaProductVariantId
+     */
+    public function archiveProductVariant($arenaProductId, $arenaProductVariantId)
+    {
+        try {
+            $this->client->archiveProductVariant()
+                ->setProductId($arenaProductId)
+                ->setProductVariantId($arenaProductVariantId)
+                ->getResult();
+        } catch (Exception $e) {
+            return;
+        }
+    }
+
+    /**
      * @param Mage_Catalog_Model_Product $product
      *
-     * @return int|null
+     * @return int[]|null[]
      */
     public function exportNewProduct(Mage_Catalog_Model_Product $product)
     {
-        $productData = $this->prepareArenaCompatibleData($product);
+        $productData = $this->prepareArenaCompatibleProductData($product);
 
         try {
             $apiCall = $this->client->createProduct()
                 ->setProductData($productData);
+
+            $result = $apiCall->getResult();
+
+            return (empty($result['id']) || empty($result['master']['id']))
+                ? [null, null]
+                : [(int) $result['id'], (int) $result['master']['id']];
+        } catch (Exception $e) {
+            return;
+        }
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     * @param int                        $arenaProductId
+     * @param int[]                      $productOptionValues
+     *
+     * @return int|null
+     */
+    public function exportNewProductVariant(
+        Mage_Catalog_Model_Product $product,
+        $arenaProductId,
+        array $productOptionValues
+    ) {
+        $variantData = $this->prepareArenaCompatibleProductVariantData($product);
+
+        try {
+            $apiCall = $this->client->createProductVariant()
+                ->setVariantData($variantData)
+                ->setOptionValueIds($productOptionValues)
+                ->setProductId($arenaProductId);
 
             $result = $apiCall->getResult();
 
@@ -87,7 +147,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      *
      * @return bool
      */
-    protected function isProductTypeSimple(Mage_Catalog_Model_Product $product)
+    public function isProductTypeSimple(Mage_Catalog_Model_Product $product)
     {
         return $product->getTypeId() === Mage_Catalog_Model_Product_Type::TYPE_SIMPLE;
     }
@@ -97,7 +157,7 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      *
      * @return bool
      */
-    protected function isProductTypeConfigurable(Mage_Catalog_Model_Product $product)
+    public function isProductTypeConfigurable(Mage_Catalog_Model_Product $product)
     {
         return $product->getTypeId() === Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE;
     }
@@ -106,11 +166,11 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      * @param Mage_Catalog_Model_Product $product
      * @param int                        $arenaProductId
      */
-    public function exportExistingProduct(
+    public function exportExistingMasterProduct(
         Mage_Catalog_Model_Product $product,
         $arenaProductId
     ) {
-        $productData = $this->prepareArenaCompatibleData($product);
+        $productData = $this->prepareArenaCompatibleProductData($product);
 
         try {
             $this->client->updateProduct()
@@ -124,24 +184,52 @@ class ArenaPl_Magento_Model_Resource_Exportservice
 
     /**
      * @param Mage_Catalog_Model_Product $product
+     * @param int                        $arenaProductId
+     * @param int                        $arenaProductVariantId
+     * @param int[]                      $productOptionValues
+     */
+    public function exportExistingVariantProduct(
+        Mage_Catalog_Model_Product $product,
+        $arenaProductId,
+        $arenaProductVariantId,
+        array $productOptionValues
+    ) {
+        $variantData = $this->prepareArenaCompatibleProductVariantData($product);
+
+        try {
+            $this->client->updateProductVariant()
+                ->setVariantData($variantData)
+                ->setOptionValueIds($productOptionValues)
+                ->setProductVariantId($arenaProductVariantId)
+                ->setProductId($arenaProductId)
+                ->getResult();
+        } catch (Exception $e) {
+            return;
+        }
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
      *
      * @return array
      */
-    protected function prepareArenaCompatibleData(Mage_Catalog_Model_Product $product)
+    protected function prepareArenaCompatibleProductData(Mage_Catalog_Model_Product $product)
     {
+        $description = $product->getDescription();
+        $sku = $product->getSku();
+        $weight = $product->getWeight();
+
         $data = [
             'name' => (string) $product->getName(),
+            'external_product_id' => (int) $product->getId(),
+            'price' => $this->getArenaCompatiblePrice($product),
+            'description' => empty($description) ? '' : (string) $description,
+            'sku' => empty($sku) ? '' : (string) $sku,
+            'weight' => empty($weight) ? '' : (float) $weight,
         ];
 
-        $arenaCompatiblePrice = preg_replace(
-            '/\./', ',',
-            $product->getPrice(),
-            1
-        );
-        $data['price'] = (string) $arenaCompatiblePrice;
-
         $taxonIds = [];
-        $collection = ArenaPl_Magento_Model_Exportservice::getProductCategoryCollection($product);
+        $collection = ArenaPl_Magento_Model_Exportservicequery::getProductCategoryCollection($product);
 
         /* @var $category Mage_Catalog_Model_Category */
         foreach ($collection as $category) {
@@ -154,31 +242,50 @@ class ArenaPl_Magento_Model_Resource_Exportservice
         }
         $data['taxon_ids'] = $taxonIds;
 
-        $description = $product->getDescription();
-        if (!empty($description)) {
-            $data['description'] = (string) $description;
-        }
+        return $data;
+    }
 
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return array
+     */
+    protected function prepareArenaCompatibleProductVariantData($product)
+    {
         $sku = $product->getSku();
-        if (!empty($sku)) {
-            $data['sku'] = (string) $sku;
-        }
 
-        $weight = $product->getWeight();
-        if (!empty($weight)) {
-            $data['weight'] = (float) $weight;
-        }
+        $data = [
+            'external_product_id' => (int) $product->getId(),
+            'price' => $this->getArenaCompatiblePrice($product),
+            'sku' => empty($sku) ? '' : (string) $sku,
+        ];
 
         return $data;
     }
 
     /**
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return string
+     */
+    protected function getArenaCompatiblePrice(Mage_Catalog_Model_Product $product)
+    {
+        $arenaCompatiblePrice = preg_replace(
+            '/\./', ',',
+            $product->getPrice(),
+            1
+        );
+
+        return (string) $arenaCompatiblePrice;
+    }
+
+    /**
      * @param int $arenaProductId
      */
-    public function deleteExistingArenaImages($arenaProductId)
+    public function deleteExistingArenaMasterImages($arenaProductId)
     {
         $productData = $this->getArenaProductData($arenaProductId);
-        if (!is_array($productData)) {
+        if (empty($productData['master']['images'])) {
             return;
         }
 
@@ -187,6 +294,31 @@ class ArenaPl_Magento_Model_Resource_Exportservice
             ->setProductId($arenaProductId);
 
         foreach ($productData['master']['images'] as $image) {
+            try {
+                $apiCall
+                    ->setProductImageId((int) $image['id'])
+                    ->getResult();
+            } catch (Exception $e) {
+            }
+        }
+    }
+
+    /**
+     * @param int $arenaProductId
+     * @param int $arenaProductVariantId
+     */
+    public function deleteExistingArenaVariantImages($arenaProductId, $arenaProductVariantId)
+    {
+        $variantData = $this->getArenaProductVariantData($arenaProductId, $arenaProductVariantId);
+        if (empty($variantData['images'])) {
+            return;
+        }
+
+        $apiCall = $this->client
+            ->deleteProductImage()
+            ->setProductId($arenaProductId);
+
+        foreach ($variantData['images'] as $image) {
             try {
                 $apiCall
                     ->setProductImageId((int) $image['id'])
@@ -213,6 +345,30 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     }
 
     /**
+     * @param int $arenaProductId
+     * @param int $arenaProductVariantId
+     *
+     * @return array|null
+     */
+    public function getArenaProductVariantData($arenaProductId, $arenaProductVariantId)
+    {
+        $productData = $this->getArenaProductData($arenaProductId);
+        if (empty($productData)) {
+            return;
+        }
+
+        if ($productData['master']['id'] == $arenaProductVariantId) {
+            return $productData['master'];
+        }
+
+        foreach ($productData['variants'] as $variantData) {
+            if ($variantData['id'] == $arenaProductVariantId) {
+                return $variantData;
+            }
+        }
+    }
+
+    /**
      * @param int      $arenaProductId
      * @param string[] $imageUrls
      */
@@ -233,7 +389,28 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     }
 
     /**
+     * @param int      $arenaProductVariantId
+     * @param string[] $imageUrls
+     */
+    public function addVariantImages($arenaProductVariantId, array $imageUrls)
+    {
+        $apiCall = $this->client
+            ->createProductVariantImage()
+            ->setProductVariantId($arenaProductVariantId);
+
+        foreach ($imageUrls as $url) {
+            try {
+                $apiCall
+                    ->setProductVariantImageUrl($url)
+                    ->getResult();
+            } catch (Exception $e) {
+            }
+        }
+    }
+
+    /**
      * @param int  $arenaProductId
+     * @param int  $arenaProductVariantId
      * @param int  $stockLocationId
      * @param int  $qty
      * @param bool $allowBackorders
@@ -242,11 +419,17 @@ class ArenaPl_Magento_Model_Resource_Exportservice
      */
     public function updateProductStockQuantity(
         $arenaProductId,
+        $arenaProductVariantId,
         $stockLocationId,
         $qty,
         $allowBackorders
     ) {
-        $stockItemData = $this->getStockItemData($arenaProductId, $stockLocationId);
+        $stockItemData = $this->getStockItemData(
+            $arenaProductId,
+            $arenaProductVariantId,
+            $stockLocationId
+        );
+
         if (!is_array($stockItemData)) {
             return false;
         }
@@ -263,19 +446,17 @@ class ArenaPl_Magento_Model_Resource_Exportservice
 
     /**
      * @param int $arenaProductId
+     * @param int $arenaProductVariantId
      * @param int $stockLocationId
      *
      * @return array|null
      */
-    protected function getStockItemData($arenaProductId, $stockLocationId)
-    {
-        $productData = $this->getArenaProductData($arenaProductId);
-        if (!is_array($productData)) {
-            return;
-        }
-
-        $masterVariantId = (int) $productData['master']['id'];
-        $foundStockItems = $this->findStockItems($masterVariantId, $stockLocationId);
+    protected function getStockItemData(
+        $arenaProductId,
+        $arenaProductVariantId,
+        $stockLocationId
+    ) {
+        $foundStockItems = $this->findStockItems($arenaProductVariantId, $stockLocationId);
         if (empty($foundStockItems)) {
             return;
         }
@@ -380,17 +561,56 @@ class ArenaPl_Magento_Model_Resource_Exportservice
     }
 
     /**
+     * Returns array of product parent IDs.
+     *
      * @param int $childId
      *
-     * @return array
+     * @return int[]
      */
-    public function getRelationsByChild($childId)
+    public function getParentsIdsByChildId($childId)
     {
         $read = ArenaPl_Magento_Helper_Data::getDBReadConnection();
         $select = $read->select()
+            ->distinct()
             ->from($this->productsRelation->getMainTable(), 'parent_id')
             ->where('child_id=?', $childId);
 
         return $read->fetchCol($select);
+    }
+    
+    /**
+     * Returns array of product parent IDs.
+     *
+     * @param int $parentId
+     *
+     * @return int[]
+     */
+    public function getChildrenIdsByParentId($parentId)
+    {
+        $read = ArenaPl_Magento_Helper_Data::getDBReadConnection();
+        $select = $read->select()
+            ->distinct()
+            ->from($this->productsRelation->getMainTable(), 'child_id')
+            ->where('parent_id=?', $parentId);
+
+        return $read->fetchCol($select);
+    }
+    
+    /**
+     * @param int $arenaProductId
+     * @param int[] $productsIdsToRelate
+     */
+    public function setProductsRelation(
+        $arenaProductId,
+        array $productsIdsToRelate
+    ) {
+        try {
+            return $this->client->setProductRelatedProducts()
+                ->setRelatedProductIds($productsIdsToRelate)
+                ->setProductId((int) $arenaProductId)
+                ->getResult();
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }

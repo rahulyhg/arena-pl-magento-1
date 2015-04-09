@@ -330,6 +330,7 @@ class ArenaPl_Magento_Model_Mapper extends Mage_Core_Model_Abstract
     {
         static $doNotDisplayAttributes = [
             ArenaPl_Magento_Model_Exportservice::ATTRIBUTE_PRODUCT_ARENA_ID,
+            ArenaPl_Magento_Model_Exportservice::ATTRIBUTE_PRODUCT_VARIANT_ARENA_ID,
         ];
 
         $returnAttributes = [];

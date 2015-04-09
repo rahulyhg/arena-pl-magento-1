@@ -43,7 +43,7 @@ $installer->addAttribute(
 
 $installer->addAttribute(
     Mage_Catalog_Model_Product::ENTITY,
-    ArenaPl_Magento_Model_ExportService::ATTRIBUTE_PRODUCT_ARENA_ID,
+    ArenaPl_Magento_Model_Exportservice::ATTRIBUTE_PRODUCT_ARENA_ID,
     [
         'type' => 'int',
         'label' => 'Arena.pl product id',

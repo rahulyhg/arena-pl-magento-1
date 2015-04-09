@@ -9,6 +9,7 @@ use ArenaPl\ApiCall\CaptureOrderPayment;
 use ArenaPl\ApiCall\CreateProduct;
 use ArenaPl\ApiCall\CreateProductImage;
 use ArenaPl\ApiCall\CreateProductVariant;
+use ArenaPl\ApiCall\CreateProductVariantImage;
 use ArenaPl\ApiCall\DeleteProductImage;
 use ArenaPl\ApiCall\GetOrder;
 use ArenaPl\ApiCall\GetOrderPayment;
@@ -25,6 +26,7 @@ use ArenaPl\ApiCall\GetTaxon;
 use ArenaPl\ApiCall\GetTaxonomies;
 use ArenaPl\ApiCall\GetTaxonTree;
 use ArenaPl\ApiCall\RestoreArchivedProduct;
+use ArenaPl\ApiCall\RestoreArchivedProductVariant;
 use ArenaPl\ApiCall\SetProductProperty;
 use ArenaPl\ApiCall\SetProductRelatedProducts;
 use ArenaPl\ApiCall\UpdateProduct;
@@ -217,6 +219,16 @@ class Client
     /**
      * @api
      *
+     * @return RestoreArchivedProductVariant
+     */
+    public function restoreArchivedProductVariant()
+    {
+        return $this->apiCallFactory->getApiCall('RestoreArchivedProductVariant');
+    }
+
+    /**
+     * @api
+     *
      * @return ArchiveProductVariant
      */
     public function archiveProductVariant()
@@ -232,6 +244,16 @@ class Client
     public function createProductImage()
     {
         return $this->apiCallFactory->getApiCall('CreateProductImage');
+    }
+
+    /**
+     * @api
+     *
+     * @return CreateProductVariantImage
+     */
+    public function createProductVariantImage()
+    {
+        return $this->apiCallFactory->getApiCall('CreateProductVariantImage');
     }
 
     /**
