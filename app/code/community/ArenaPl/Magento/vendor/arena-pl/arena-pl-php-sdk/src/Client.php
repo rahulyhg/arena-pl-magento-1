@@ -9,6 +9,7 @@ use ArenaPl\ApiCall\CaptureOrderPayment;
 use ArenaPl\ApiCall\CreateProduct;
 use ArenaPl\ApiCall\CreateProductImage;
 use ArenaPl\ApiCall\CreateProductVariant;
+use ArenaPl\ApiCall\CreateProductVariantImage;
 use ArenaPl\ApiCall\DeleteProductImage;
 use ArenaPl\ApiCall\GetOrder;
 use ArenaPl\ApiCall\GetOrderPayment;
@@ -243,6 +244,16 @@ class Client
     public function createProductImage()
     {
         return $this->apiCallFactory->getApiCall('CreateProductImage');
+    }
+
+    /**
+     * @api
+     *
+     * @return CreateProductVariantImage
+     */
+    public function createProductVariantImage()
+    {
+        return $this->apiCallFactory->getApiCall('CreateProductVariantImage');
     }
 
     /**

@@ -212,17 +212,17 @@
     },
     {
         "name": "arena-pl/arena-pl-php-sdk",
-        "version": "1.2.0",
-        "version_normalized": "1.2.0.0",
+        "version": "dev-master",
+        "version_normalized": "9999999-dev",
         "source": {
             "type": "git",
             "url": "https://github.com/arena-pl/arena-pl-php-sdk.git",
-            "reference": "bae50410ed1cf196f2e4d31291544a94c7f0b19a"
+            "reference": "96c35332530f447f7ec50c8b5f9274db52326fdc"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/arena-pl/arena-pl-php-sdk/zipball/bae50410ed1cf196f2e4d31291544a94c7f0b19a",
-            "reference": "bae50410ed1cf196f2e4d31291544a94c7f0b19a",
+            "url": "https://api.github.com/repos/arena-pl/arena-pl-php-sdk/zipball/96c35332530f447f7ec50c8b5f9274db52326fdc",
+            "reference": "96c35332530f447f7ec50c8b5f9274db52326fdc",
             "shasum": ""
         },
         "require": {
@@ -236,14 +236,14 @@
         "suggest": {
             "ext-curl": "SDK will work with full functionality if cURL is present"
         },
-        "time": "2015-04-07 10:40:38",
+        "time": "2015-04-09 09:37:02",
         "type": "library",
         "extra": {
             "branch-alias": {
                 "dev-master": "1.0-dev"
             }
         },
-        "installation-source": "dist",
+        "installation-source": "source",
         "autoload": {
             "psr-4": {
                 "ArenaPl\\": "src/"

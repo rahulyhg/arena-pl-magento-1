@@ -45,6 +45,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
             ['\ArenaPl\ApiCall\CreateProduct', 'createProduct'],
             ['\ArenaPl\ApiCall\CreateProductImage', 'createProductImage'],
             ['\ArenaPl\ApiCall\CreateProductVariant', 'createProductVariant'],
+            ['\ArenaPl\ApiCall\CreateProductVariantImage', 'createProductVariantImage'],
             ['\ArenaPl\ApiCall\DeleteProductImage', 'deleteProductImage'],
             ['\ArenaPl\ApiCall\GetProduct', 'getProduct'],
             ['\ArenaPl\ApiCall\GetProducts', 'getProducts'],

@@ -2,6 +2,7 @@
 
 namespace ArenaPl\Test\ApiCall;
 
+use ArenaPl\ApiCall\ApiCallInterface;
 use ArenaPl\ApiCall\CreateProductImage;
 use ArenaPl\Test\ApiCallExecutor\ApiCallExecutorMockTrait;
 
@@ -41,6 +42,11 @@ class CreateProductImageTest extends \PHPUnit_Framework_TestCase
 
         $this->createProductImage->setProductSlug('abc');
         $this->assertSame('/api/products/abc/images/create_from_url', $this->createProductImage->getPath());
+
+        $this->assertSame(
+            ApiCallInterface::METHOD_POST,
+            $this->createProductImage->getMethod()
+        );
     }
 
     public function testEmptyProductImageUrlWillThrowException()

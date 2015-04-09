@@ -10,6 +10,11 @@ trait OptionValueTrait
     protected $optionValueIds = [];
 
     /**
+     * @var array
+     */
+    protected $variantData = [];
+
+    /**
      * @param int[] $optionValueIds
      *
      * @return self
@@ -54,5 +59,40 @@ trait OptionValueTrait
     protected function getOptionValueIds()
     {
         return array_unique($this->optionValueIds);
+    }
+
+    /**
+     * Sets new set of variant data.
+     *
+     * Overwrites current variant data.
+     *
+     * @param array $variantData
+     *
+     * @return self
+     */
+    public function setVariantData(array $variantData)
+    {
+        $this->variantData = $variantData;
+
+        return $this;
+    }
+
+    /**
+     * @param string $name
+     * @param mixed  $value
+     *
+     * @return self
+     *
+     * @throws \InvalidArgumentException When empty field name provided
+     */
+    public function setVariantField($name, $value)
+    {
+        if (empty($name)) {
+            throw new \InvalidArgumentException('Empty field name provided');
+        }
+
+        $this->variantData[$name] = $value;
+
+        return $this;
     }
 }

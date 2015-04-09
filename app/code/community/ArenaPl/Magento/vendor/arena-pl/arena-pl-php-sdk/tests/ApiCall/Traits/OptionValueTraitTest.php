@@ -33,4 +33,35 @@ class OptionValueTraitTest extends \PHPUnit_Framework_TestCase
 
         $this->addOptionValueId('im not numeric');
     }
+
+    public function testVariantDataSet()
+    {
+        $this->assertSame([], $this->variantData);
+
+        $this->setVariantField('a', 1);
+        $this->assertSame(['a' => 1], $this->variantData);
+
+        $data = [
+            'a' => 2,
+            'b' => 'c',
+        ];
+
+        $this->setVariantData($data);
+        $this->assertSame($data, $this->variantData);
+
+        $this->setVariantField('a', 1);
+
+        $data['a'] = 1;
+        $this->assertSame($data, $this->variantData);
+    }
+
+    public function testEmptyVariantFieldWillThrowException()
+    {
+        $this->setExpectedExceptionRegExp(
+            '\InvalidArgumentException',
+            '/empty field/i'
+        );
+
+        $this->setVariantField('', 1);
+    }
 }
