@@ -34,4 +34,20 @@ class ArenaPl_Magento_Observer_Product
             Mage::logException($e);
         }
     }
+    
+    /**
+     * @param Varien_Event_Observer $observer
+     */
+    public function onProductDuplicate(Varien_Event_Observer $observer)
+    {
+        $event = $observer->getEvent();
+        
+        try {
+            /* @var $exporter ArenaPl_Magento_Model_ExportService */
+            $exporter = Mage::getSingleton('arenapl_magento/exportservice');
+            $exporter->cleanArenaData($event->getNewProduct());
+        } catch (\Exception $e) {
+            Mage::logException($e);
+        }
+    }
 }
